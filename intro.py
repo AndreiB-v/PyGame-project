@@ -1,3 +1,5 @@
+# Это начальная заставка, осталось только кнопки добавить
+
 import os
 import sys
 from random import choice, randint, uniform
@@ -6,10 +8,12 @@ import pygame
 
 pygame.init()
 size = width, height = 16 * 96, 9 * 96
+# Задается размер экрана с соотношением 16:9, позже это пропишем в другом месте
 screen = pygame.display.set_mode(size, pygame.NOFRAME)
 
 factor_x = width / 1920
 factor_y = height / 1080
+# факторы, которые умножаем на каждый x/y, для работы с размером экрана
 
 
 def load_image(name, colorkey=None):
