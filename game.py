@@ -2,7 +2,7 @@
 
 
 import pygame
-from data.screens.intro import Intro
+from intro import *
 
 
 class Application:

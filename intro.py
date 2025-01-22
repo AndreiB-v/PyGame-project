@@ -1,13 +1,10 @@
 # Это начальная заставка, осталось только кнопки добавить
 
-import os
-import sys
 from random import choice, randint, uniform
-
-import pygame
+from utils import *
 
 pygame.init()
-size = width, height = 16 * 50, 9 * 50
+size = width, height = 16 * 96, 9 * 96
 # Задается размер экрана с соотношением 16:9, позже это пропишем в другом месте
 screen = pygame.display.set_mode(size, pygame.NOFRAME)
 
@@ -37,13 +34,13 @@ def load_image(name, colorkey=None):
     return image
 
 
-mountain_image = load_image('Гора.png')
-ship1_image = load_image('Корабль 1.png')
-ship2_image = load_image('Корабль 2.png')
-cloud1_image = load_image('Облако 1.png')
-cloud2_image = load_image('облако 2.png')
-top_layer_image = load_image('Верхний слой.png')
-bottom_layer_image = load_image('Нижний слой.png')
+mountain_image = load_image('Mountain.png')
+ship1_image = load_image('Ship 1.png')
+ship2_image = load_image('Ship 2.png')
+cloud1_image = load_image('Cloud 1.png')
+cloud2_image = load_image('Cloud 2.png')
+top_layer_image = load_image('Foreground.png')
+bottom_layer_image = load_image('Background.png')
 play_button_image = load_image('PlayButton.png')
 settings_button_image = load_image('SettingsButton.png')
 
