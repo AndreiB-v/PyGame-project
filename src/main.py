@@ -24,13 +24,14 @@ class Player(pygame.sprite.Sprite):
         self.dash_cooldown = 500  # Время ожидания между рывками в миллисекундах
         self.last_dash_time = 0
         self.is_moving = False
+        self.is_dashing = False
         self.direction = "right"
 
         self.dash_duration = 200  # Длительность рывка в миллисекундах
         self.dash_start_time = None
         self.start_pos = None
         self.end_pos = None
-        self.dash_speed = 200  # Смещение при рывке
+        self.dash_speed = 150  # Смещение при рывке
 
         # Группы анимаций принадлежащих игроку
         self.animations = {"move_right": Animation("walk", frame_rate=200),
@@ -39,8 +40,8 @@ class Player(pygame.sprite.Sprite):
                            "idle_left": Animation("idle", frame_rate=200, flip_horizontal=True),
                            "jump_right": Animation("jump", frame_rate=230),
                            "jump_left": Animation("jump", frame_rate=230, flip_horizontal=True),
-                           "dash_right": Animation("dash", frame_rate=200),
-                           "dash_left": Animation("dash", frame_rate=200, flip_horizontal=True)}
+                           "dash_right": Animation("dash", frame_rate=180),
+                           "dash_left": Animation("dash", frame_rate=180, flip_horizontal=True)}
         self.current_animation = self.animations["idle_right"]
 
         # Создаём спрайт игрока
@@ -113,6 +114,7 @@ class Player(pygame.sprite.Sprite):
 
         # Рывок
         if self.dash_start_time is not None:
+            self.is_dashing = True
             elapsed_time = current_time - self.dash_start_time
 
             if elapsed_time < self.dash_duration:
@@ -123,6 +125,7 @@ class Player(pygame.sprite.Sprite):
                 # Завершаем рывок после истечения времени
                 self.rect.x = self.end_pos
                 self.dash_start_time = None  # Сбрасываем время начала рывка
+                self.is_dashing = False
 
                 # Сбрасываем кадры анимации для рывка
                 if self.direction == "right":
@@ -131,7 +134,13 @@ class Player(pygame.sprite.Sprite):
                     self.set_animation("dash_left")
 
         # Если игрок стоит, то меняем анимацию на анимацию стояния) бездействия, или на анимацию прыжка
-        if (not self.is_ground and self.is_moving) or not self.is_ground:
+        if self.is_dashing:
+            if self.direction == "right":
+                self.current_animation = self.animations["dash_right"]
+            else:
+                self.current_animation = self.animations["dash_left"]
+
+        elif (not self.is_ground and self.is_moving) or not self.is_ground:
             if self.direction == "right":
                 self.current_animation = self.animations["jump_right"]
             else:
