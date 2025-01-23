@@ -38,17 +38,18 @@ class Button(pygame.sprite.Sprite):
 
     def update(self, *args):
         x, y = args[0]
+        pressed = (self.rect.x <= x <= self.rect.x + self.rect.width
+                   and self.rect.y <= y <= self.rect.y + self.rect.height)
         if self.image != self.backup_image and args[1] == 'up':
             self.image = self.backup_image
             self.rect.x -= self.size_factor[0] / 2
             self.rect.y -= self.size_factor[1] / 2
-        if (self.rect.x <= x <= self.rect.x + self.rect.width
-                and self.rect.y <= y <= self.rect.y + self.rect.height):
+            if pressed:
+                self.function()
+        if pressed:
             if args[1] == 'down':
                 self.image = pygame.transform.scale(self.image,
                                                     (self.rect.width - self.size_factor[0],
                                                      self.rect.height - self.size_factor[1]))
                 self.rect.x += self.size_factor[0] / 2
                 self.rect.y += self.size_factor[1] / 2
-            if args[1] == 'up':
-                self.function()
