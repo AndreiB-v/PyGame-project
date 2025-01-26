@@ -101,7 +101,7 @@ class Player(pygame.sprite.Sprite):
 
         # Обновляем позицию по оси Y
         if not self.is_ground:
-            self.rect.y += self.fall_speed
+            self.rect.y += self.fall_speed * factor_y
 
             hits = pygame.sprite.spritecollide(self, self.all_group, False)
             if hits:
@@ -218,11 +218,11 @@ class Game:
         pygame.quit()
 
 
-# screen_log = start_screen()
-# while screen_log not in ('run_game', 'close'):
-#     screen_log = screen_log()
-# if screen_log == 'close':
-#     pygame.quit()
+screen_log = start_screen()
+while screen_log not in ('run_game', 'close'):
+    screen_log = screen_log()
+if screen_log == 'close':
+    pygame.quit()
 
 if __name__ == "__main__":
     game_instance = Game()
