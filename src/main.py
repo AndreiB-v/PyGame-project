@@ -58,11 +58,11 @@ class Player(pygame.sprite.Sprite):
 
     def move(self, direction):
         if direction == "right":
-            self.rect.x += 5
+            self.rect.x += 5 * factor_x
             self.set_animation("move_right")
 
         elif direction == "left":
-            self.rect.x -= 5
+            self.rect.x -= 5 * factor_x
             self.set_animation("move_left")
 
         self.is_moving = True
@@ -75,9 +75,9 @@ class Player(pygame.sprite.Sprite):
             self.start_pos = self.rect.x
             if direction == "right":
                 self.set_animation("dash_right")
-                self.end_pos = self.start_pos + self.dash_speed
+                self.end_pos = self.start_pos + self.dash_speed * factor_x
             elif direction == "left":
-                self.end_pos = self.start_pos - self.dash_speed
+                self.end_pos = self.start_pos - self.dash_speed * factor_x
                 self.set_animation("dash_left")
 
             # Устанавливаем время начала рывка
@@ -162,20 +162,22 @@ class Player(pygame.sprite.Sprite):
 class Platform(pygame.sprite.Sprite):
     def __init__(self, posx, posy, all_sprites):
         super().__init__(all_sprites)
-        self.image = pygame.Surface((700, 10), pygame.SRCALPHA)
-        pygame.draw.rect(self.image, pygame.Color("gray"), (0, 0, 700, 10))
-        self.rect = self.image.get_rect(topleft=(posx, posy))
+        self.image = pygame.Surface((700 * factor_x, 10 * factor_y), pygame.SRCALPHA)
+        pygame.draw.rect(self.image, pygame.Color("gray"), (0, 0, 700 * factor_x, 10 * factor_y))
+        self.rect = self.image.get_rect()
+        self.rect.x = posx * factor_x
+        self.rect.y = posy * factor_y
 
 
 class Game:
     def __init__(self):
         pygame.init()
-        self.size = width, height = 700, 700
+        self.size = width, height
         pygame.display.set_caption("Корабли ходят по небу")
         self.screen = pygame.display.set_mode(self.size)
         self.clock = pygame.time.Clock()
 
-        player_pos = (50, 100)
+        player_pos = (50 * factor_x, 100 * factor_y)
 
         # Создаём группы
         self.player_group = pygame.sprite.Group()
@@ -216,12 +218,11 @@ class Game:
         pygame.quit()
 
 
-screen_log = start_screen()
-while screen_log not in ('run_game', 'close'):
-    screen_log = screen_log()
-if screen_log == 'close':
-    pygame.quit()
-
+# screen_log = start_screen()
+# while screen_log not in ('run_game', 'close'):
+#     screen_log = screen_log()
+# if screen_log == 'close':
+#     pygame.quit()
 
 if __name__ == "__main__":
     game_instance = Game()

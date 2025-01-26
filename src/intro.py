@@ -7,12 +7,8 @@ import pygame.time
 from utils import *
 
 pygame.init()
-size = width, height = 16 * 50, 9 * 50
 # Задается размер экрана с соотношением 16:9, позже это пропишем в другом месте
 screen = pygame.display.set_mode(size, pygame.NOFRAME)
-
-factor_x = width / 1920
-factor_y = height / 1080
 
 
 # факторы, которые умножаем на каждый x/y, для работы с размером экрана

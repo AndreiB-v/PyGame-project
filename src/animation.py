@@ -1,5 +1,5 @@
 import pygame
-from utils import load_animation
+from utils import *
 
 
 class Animation:
