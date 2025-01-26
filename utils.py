@@ -1,10 +1,13 @@
 # Файл для вспомогательных функций
-# Типа зарзрузки изображения, карты или музыки
+# Типа загрузки изображения, карты или музыки
 
 
 import os
 import sys
 import pygame
+
+FPS = 60
+clock = pygame.time.Clock()
 
 
 # Функция для добавления изображений
@@ -45,7 +48,7 @@ class Button(pygame.sprite.Sprite):
             self.rect.x -= self.size_factor[0] / 2
             self.rect.y -= self.size_factor[1] / 2
             if pressed:
-                self.function()
+                return self.function
         if pressed:
             if args[1] == 'down':
                 self.image = pygame.transform.scale(self.image,
