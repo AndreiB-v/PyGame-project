@@ -156,7 +156,7 @@ def play():
     def plus():
         nonlocal save_count
         save_count += 1
-        save_buttons.append(Button(381, 160 + 151 * (save_count - 1), start_screen,
+        save_buttons.append(Button(381, 160 + 151 * (save_count - 1), 'run_game',
                                    load_image(f'select UI/Save {save_count}.png'),
                                    (all_sprites, button_layer), factor_x, factor_y))
         if save_count == 5:
@@ -188,6 +188,8 @@ def play():
                              [i.update(event.pos, 'up') for i in save_buttons]):
                     if func == start_screen:
                         return start_screen
+                    elif func == 'run_game':
+                        return 'run_game'
                     elif func:
                         func()
             if event.type == MYEVENTTYPE:
@@ -284,8 +286,9 @@ def start_screen():
         clock.tick(FPS)
 
 
-screen_log = start_screen()
-while screen_log not in ('game', 'close'):
-    screen_log = screen_log()
-if screen_log == 'close':
-    pygame.quit()
+# screen_log = start_screen()
+# while screen_log not in ('game', 'close'):
+#     screen_log = screen_log()
+# if screen_log == 'close':
+#     pygame.quit()
+#

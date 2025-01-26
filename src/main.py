@@ -1,6 +1,7 @@
 import pygame
 from utils import load_image
 from animation import Animation
+from intro import *
 
 
 class Player(pygame.sprite.Sprite):
@@ -213,6 +214,13 @@ class Game:
             pygame.display.flip()
 
         pygame.quit()
+
+
+screen_log = start_screen()
+while screen_log not in ('run_game', 'close'):
+    screen_log = screen_log()
+if screen_log == 'close':
+    pygame.quit()
 
 
 if __name__ == "__main__":
