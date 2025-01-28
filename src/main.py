@@ -86,25 +86,30 @@ class Player(pygame.sprite.Sprite):
             self.last_dash_time = current_time
 
     def jump(self):
-        if self.is_ground:
-            self.fall_speed = self.jump_strength
-            self.is_ground = False
+        self.rect.y += 1
+        hits = pygame.sprite.spritecollide(self, self.all_group, False)
+        for hit in hits:
+            if self.rect.y + self.rect.height - 1 == hit.rect.y:
+                self.fall_speed = self.jump_strength
+                self.is_ground = False
 
-            if self.direction == "right":
-                self.set_animation("jump_right")
-            else:
-                self.set_animation("jump_left")
+                if self.direction == "right":
+                    self.set_animation("jump_right")
+                else:
+                    self.set_animation("jump_left")
+                break
 
     def update(self):
         # Применяем гравитацию
         self.fall_speed += self.gravity
 
         # Обновляем позицию по оси Y
-        if not self.is_ground:
-            self.rect.y += self.fall_speed * factor_y
+        self.rect.y += self.fall_speed * factor_y
 
-            hits = pygame.sprite.spritecollide(self, self.all_group, False)
-            if hits:
+        hits = pygame.sprite.spritecollide(self, self.all_group, False)
+        for hit in hits:
+            if abs(self.rect.y + self.rect.height - hit.rect.y) < 10:
+                self.rect.y -= abs(self.rect.y + self.rect.height - hit.rect.y)
                 self.fall_speed = 0
                 self.is_ground = True
 
@@ -152,6 +157,16 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.current_animation = self.animations["idle_left"]
 
+        hits = pygame.sprite.spritecollide(self, self.all_group, False)
+
+        for hit in hits:
+            n1 = abs(hit.rect.x + hit.rect.width - self.rect.x)
+            n2 = abs(self.rect.x + self.rect.width - hit.rect.x)
+            if n1 < n2:
+                self.rect.x = hit.rect.x + hit.rect.width
+            elif n1 > n2:
+                self.rect.x = hit.rect.x - self.rect.width
+
         self.is_moving = False
 
         # Обновляем текущую анимацию
@@ -160,10 +175,10 @@ class Player(pygame.sprite.Sprite):
 
 
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, posx, posy, all_sprites):
-        super().__init__(all_sprites)
-        self.image = pygame.Surface((700 * factor_x, 10 * factor_y), pygame.SRCALPHA)
-        pygame.draw.rect(self.image, pygame.Color("gray"), (0, 0, 700 * factor_x, 10 * factor_y))
+    def __init__(self, posx, posy, width, height, group):
+        super().__init__(group)
+        self.image = pygame.Surface((width * factor_x, height * factor_y), pygame.SRCALPHA)
+        self.image.fill(pygame.Color("gray"))
         self.rect = self.image.get_rect()
         self.rect.x = posx * factor_x
         self.rect.y = posy * factor_y
@@ -184,7 +199,9 @@ class Game:
         self.all_group = pygame.sprite.Group()
 
         self.player = Player(self.player_group, player_pos, self.all_group)
-        Platform(0, 300, self.all_group)
+        Platform(0, 300, 401, 1000, self.all_group)
+        Platform(400, 700, 400, 1000, self.all_group)
+        Platform(800, 300, 700, 1000, self.all_group)
 
     def run(self):
         running = True
@@ -218,11 +235,11 @@ class Game:
         pygame.quit()
 
 
-screen_log = start_screen()
-while screen_log not in ('run_game', 'close'):
-    screen_log = screen_log()
-if screen_log == 'close':
-    pygame.quit()
+# screen_log = start_screen()
+# while screen_log not in ('run_game', 'close'):
+#     screen_log = screen_log()
+# if screen_log == 'close':
+#     pygame.quit()
 
 if __name__ == "__main__":
     game_instance = Game()
