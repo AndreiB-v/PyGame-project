@@ -280,11 +280,3 @@ def start_screen():
 
         pygame.display.flip()
         clock.tick(FPS)
-
-
-# screen_log = start_screen()
-# while screen_log not in ('game', 'close'):
-#     screen_log = screen_log()
-# if screen_log == 'close':
-#     pygame.quit()
-#

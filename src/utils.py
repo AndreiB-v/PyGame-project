@@ -26,11 +26,6 @@ def load_image(name, colorkey=None):
         if colorkey == -1:
             colorkey = image.get_at((0, 0))
         image.set_colorkey(colorkey)
-    else:
-        x = image.get_width()
-        y = image.get_height()
-        image = pygame.transform.scale(image, (factor_x * x, factor_y * y))
-        image = image.convert_alpha()
     return image
 
 
@@ -80,8 +75,8 @@ def load_animation(folder_path):
 
     for file_name in files:
         full_path = os.path.join(base_folder, file_name)
-        image = load_image(full_path, True)
-        image = pygame.transform.scale(image, (70 * factor_x, 80 * factor_y))
+        image = load_image(full_path)
+        image = pygame.transform.scale(image, (100 * factor_x, 87 * factor_y))
         frames.append(image)
 
     return frames

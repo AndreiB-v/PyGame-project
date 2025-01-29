@@ -1,4 +1,6 @@
 import pygame
+from pygame.gfxdraw import rectangle
+
 from utils import load_image
 from animation import Animation
 from intro import *
@@ -15,7 +17,6 @@ class Player(pygame.sprite.Sprite):
         self.acceleration = 0.5
 
         # Прописываем параметры игрока
-        self.posx, self.posy = pos
         self.fall_speed = 0
         self.jump_strength = -15
         self.is_ground = False
@@ -47,7 +48,14 @@ class Player(pygame.sprite.Sprite):
 
         # Создаём спрайт игрока
         self.image = self.current_animation.get_frame()
-        self.rect = self.image.get_rect(topleft=(self.posx, self.posy))
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = pos
+
+        # Создаем отступы от маски, именно они образуют хит-бокс
+        self.mask = pygame.mask.from_surface(self.image)
+        self.left_indent = min(self.mask.outline(), key=lambda x: x[0])
+        self.right_indent = self.rect.width - max(self.mask.outline(), key=lambda x: x[0])[0] - 1
+        self.top_indent = self.rect.height - max(self.mask.outline(), key=lambda x: x[1])[1] - 1
 
     def set_animation(self, animation_name):
         if self.current_animation != self.animations[animation_name]:
@@ -87,31 +95,67 @@ class Player(pygame.sprite.Sprite):
 
     def jump(self):
         self.rect.y += 1
+        hits_after = pygame.sprite.spritecollide(self, self.all_group, False)
+        for hit in hits_after:
+            if pygame.sprite.collide_mask(self, hit):
+                # print(self.rect.y + self.rect.height - 1 * round(1 + factor_y), hit.rect.y)
+                if abs(self.rect.y + self.rect.height - hit.rect.y) < 3:
+                    print('yes')
+                    self.fall_speed = self.jump_strength
+                    self.is_ground = False
+
+                    if self.direction == "right":
+                        self.set_animation("jump_right")
+                    else:
+                        self.set_animation("jump_left")
+                    break
+
+    def wall_collision(self):
+        # получаем пересекаемые объекты и перебираем каждый отдельно
         hits = pygame.sprite.spritecollide(self, self.all_group, False)
         for hit in hits:
-            if self.rect.y + self.rect.height - 1 == hit.rect.y:
-                self.fall_speed = self.jump_strength
-                self.is_ground = False
+            # Если маски пересекаются
+            if pygame.sprite.collide_mask(self, hit):
+                # Считаем расстояние игрока относительно объекта, с которым он пересекается
+                # и смещаем его на наименьшее (top_side для избежания багов)
+                left_side = abs(hit.rect.x + hit.rect.width - self.rect.x)
+                right_side = abs(self.rect.x + self.rect.width - hit.rect.x)
+                top_side = abs(self.rect.y + self.rect.height - hit.rect.y)
+                if min(left_side, right_side, top_side) == left_side:
+                    # По скольку эта функция работает, когда упираешься в стенки
+                    self.is_dashing = False
+                    self.dash_start_time = None
 
-                if self.direction == "right":
-                    self.set_animation("jump_right")
-                else:
-                    self.set_animation("jump_left")
-                break
+                    self.rect.x = hit.rect.x + hit.rect.width - self.left_indent
+                elif min(left_side, right_side, top_side) == right_side:
+                    self.is_dashing = False
+                    self.dash_start_time = None
+
+                    self.rect.x = hit.rect.x - self.rect.width + self.right_indent
 
     def update(self):
         # Применяем гравитацию
         self.fall_speed += self.gravity
 
+        # Проверяем на столкновения со стенками
+        self.wall_collision()
+
         # Обновляем позицию по оси Y
         self.rect.y += self.fall_speed * factor_y
 
+        # обновляем координаты по Y координате (препятствия над и под)
         hits = pygame.sprite.spritecollide(self, self.all_group, False)
         for hit in hits:
-            if abs(self.rect.y + self.rect.height - hit.rect.y) < 10:
-                self.rect.y -= abs(self.rect.y + self.rect.height - hit.rect.y)
-                self.fall_speed = 0
-                self.is_ground = True
+            if pygame.sprite.collide_mask(self, hit):
+                if self.rect.y - hit.rect.y < hit.rect.y - self.rect.y:
+                    self.rect.y -= abs(self.rect.y + self.rect.height - hit.rect.y)
+                    self.fall_speed = 0
+                    self.is_ground = True
+                    break
+                elif self.rect.y - hit.rect.y > hit.rect.y - self.rect.y:
+                    self.rect.y = hit.rect.y + hit.rect.height - self.top_indent
+                    self.fall_speed = 0
+                    break
 
         # Проверяем возможность выполнения рывка
         current_time = pygame.time.get_ticks()
@@ -139,7 +183,7 @@ class Player(pygame.sprite.Sprite):
                 else:
                     self.set_animation("dash_left")
 
-        # Если игрок стоит, то меняем анимацию на анимацию стояния) бездействия, или на анимацию прыжка
+        # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
         if self.is_dashing:
             if self.direction == "right":
                 self.current_animation = self.animations["dash_right"]
@@ -157,15 +201,8 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.current_animation = self.animations["idle_left"]
 
-        hits = pygame.sprite.spritecollide(self, self.all_group, False)
-
-        for hit in hits:
-            n1 = abs(hit.rect.x + hit.rect.width - self.rect.x)
-            n2 = abs(self.rect.x + self.rect.width - hit.rect.x)
-            if n1 < n2:
-                self.rect.x = hit.rect.x + hit.rect.width
-            elif n1 > n2:
-                self.rect.x = hit.rect.x - self.rect.width
+        # Проверяем на столкновения со стенками
+        self.wall_collision()
 
         self.is_moving = False
 
@@ -173,15 +210,22 @@ class Player(pygame.sprite.Sprite):
         self.current_animation.update()
         self.image = self.current_animation.get_frame()
 
+        # Обновляем маску и хит-боксы
+        self.mask = pygame.mask.from_surface(self.image)
+        self.left_indent = min(self.mask.outline(), key=lambda x: x[0])[0]
+        self.right_indent = self.rect.width - max(self.mask.outline(), key=lambda x: x[0])[0] - 1
+        self.top_indent = min(self.mask.outline(), key=lambda x: x[1])[1]
+
 
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, posx, posy, width, height, group):
+    def __init__(self, pos_x, pos_y, width, height, group):
         super().__init__(group)
         self.image = pygame.Surface((width * factor_x, height * factor_y), pygame.SRCALPHA)
-        self.image.fill(pygame.Color("gray"))
+        self.image.fill(pygame.Color("white"))
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
-        self.rect.x = posx * factor_x
-        self.rect.y = posy * factor_y
+        self.rect.x = pos_x * factor_x
+        self.rect.y = pos_y * factor_y
 
 
 class Game:
@@ -189,7 +233,7 @@ class Game:
         pygame.init()
         self.size = width, height
         pygame.display.set_caption("Корабли ходят по небу")
-        self.screen = pygame.display.set_mode(self.size)
+        self.screen = pygame.display.set_mode(self.size, pygame.NOFRAME)
         self.clock = pygame.time.Clock()
 
         player_pos = (50 * factor_x, 100 * factor_y)
@@ -201,7 +245,8 @@ class Game:
         self.player = Player(self.player_group, player_pos, self.all_group)
         Platform(0, 300, 401, 1000, self.all_group)
         Platform(400, 700, 400, 1000, self.all_group)
-        Platform(800, 300, 700, 1000, self.all_group)
+        Platform(600, 500, 700, 100, self.all_group)
+        Platform(798, 300, 700, 1000, self.all_group)
 
     def run(self):
         running = True
