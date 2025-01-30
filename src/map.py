@@ -31,7 +31,7 @@ class Map:
                     tile = Tile(image, tile_x, tile_y)
                     if 'platforms' in layer.name.lower():
                         self.platforms_group.add(tile)
-                    elif 'dieBlocks' in layer.name.lower():
+                    elif 'dieblocks' in layer.name.lower():
                         self.die_block_group.add(tile)
                     self.all_sprites.add(tile)
 

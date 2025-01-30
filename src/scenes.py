@@ -1,18 +1,24 @@
 from objects import *
-
+from map import Map
 
 # Основной цикл игры
 def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
-    player_pos = (50 * FACTOR_X, 100 * FACTOR_Y)
+    player_pos = (1800 * FACTOR_X, 100 * FACTOR_Y)
 
-    player = Player(player_group, player_pos, top_layer)
-    Platform(0, 300, 401, 1000, top_layer)
-    Platform(400, 700, 400, 1000, top_layer)
-    Platform(600, 500, 700, 100, top_layer)
-    Platform(798, 300, 700, 1000, top_layer)
+    # Создаём объект карты
+    map = Map(screen, "loco1")
+    groups = map.get_groups() # Получаем все группы спрайтов с нашей карты
+    bottom_layer = groups[1] # Передаём игроку 1 аргумент, т.к. метод get_groups возращает группу platforms второй
+
+    # Заполняем группы
+    top_layer = groups[2] # die блоки
+    mid_layer = groups[0]
+
+
+    player = Player(player_group, player_pos, bottom_layer, top_layer)
 
     while True:
         for event in pygame.event.get():

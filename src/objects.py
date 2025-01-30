@@ -155,6 +155,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__(group)
 
         self.all_group = args[0]
+        self.die_blocks_group = args[1]
 
         # Прописываем физические параметры
         self.gravity = 0.6
@@ -274,6 +275,12 @@ class Player(pygame.sprite.Sprite):
 
                     self.rect.x = hit.rect.x - self.rect.width + self.right_indent
 
+    def die_block_collision(self):
+        # получаем пересекаемые объекты и перебираем каждый отдельно
+        hits = pygame.sprite.spritecollide(self, self.die_blocks_group, False)
+        if hits:
+            print("Вы погибли") # Прописать возрождение
+
     def update(self):
         # Применяем гравитацию
         self.fall_speed += self.gravity * 60 / fps
@@ -344,6 +351,9 @@ class Player(pygame.sprite.Sprite):
 
         # Проверяем на столкновения со стенками
         self.wall_collision()
+
+        # Проверяем на столкновение с die блоками
+        self.die_block_collision()
 
         self.is_moving = False
 
