@@ -1,62 +1,12 @@
 from objects import *
 
-class Game:
-    def __init__(self):
-        pygame.init()
-        self.size = WIDTH, HEIGHT
-        pygame.display.set_caption("Корабли ходят по небу")
-        self.screen = pygame.display.set_mode(self.size, pygame.NOFRAME)
-        self.clock = pygame.time.Clock()
 
-        player_pos = (50 * factor_x, 100 * factor_y)
-
-        # Создаём группы
-        self.player_group = pygame.sprite.Group()
-        self.all_group = pygame.sprite.Group()
-
-        self.player = Player(self.player_group, player_pos, self.all_group)
-        Platform(0, 300, 401, 1000, self.all_group)
-        Platform(400, 700, 400, 1000, self.all_group)
-        Platform(600, 500, 700, 100, self.all_group)
-        Platform(798, 300, 700, 1000, self.all_group)
-
-    def run(self):
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-
-            # Проверка зажатия WASD или стрелочек
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-                self.player.direction = "right"
-                self.player.move("right")
-            if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-                self.player.direction = "left"
-                self.player.move("left")
-            if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE]:
-                self.player.jump()
-            if keys[pygame.K_LCTRL]:  # Рывок
-                self.player.dash(self.player.direction)
-
-            # Отрисовываем
-            self.screen.fill((0, 0, 0))
-            self.player_group.draw(self.screen)
-            self.player.update()
-            self.all_group.draw(self.screen)
-
-            self.clock.tick(fps)
-            pygame.display.flip()
-
-        pygame.quit()
-
-
+# Основной цикл игры
 def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
-    player_pos = (50 * factor_x, 100 * factor_y)
+    player_pos = (50 * FACTOR_X, 100 * FACTOR_Y)
 
     player = Player(player_group, player_pos, top_layer)
     Platform(0, 300, 401, 1000, top_layer)
@@ -98,6 +48,7 @@ def game():
         clock.tick(fps)
 
 
+# Экран 'приветствия', главная менюшка
 def start_screen():
     initialization()
 
@@ -110,9 +61,9 @@ def start_screen():
     ship2 = Ship(-1)
     cloud2 = Cloud(-1)
     play_button = Button(32, 528, select_save, load_image('menu UI/PlayButton.png', 'MENU'),
-                         (all_sprites, button_layer), factor_x, factor_y)
+                         (all_sprites, button_layer), FACTOR_X, FACTOR_Y)
     settings_button = Button(33, 788, settings, load_image('menu UI/SettingsButton.png', 'MENU'),
-                             (all_sprites, button_layer), factor_x, factor_y)
+                             (all_sprites, button_layer), FACTOR_X, FACTOR_Y)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -137,6 +88,7 @@ def start_screen():
         clock.tick(fps)
 
 
+# Экран выбора сохранения
 def select_save():
     save_count = 0
     save_buttons = []
@@ -146,7 +98,7 @@ def select_save():
         save_count += 1
         save_buttons.append(Button(381, 160 + 151 * (save_count - 1), game,
                                    load_image(f'select UI/Save {save_count}.png', 'MENU'),
-                                   (all_sprites, button_layer), factor_x, factor_y))
+                                   (all_sprites, button_layer), FACTOR_X, FACTOR_Y))
         if save_count == 5:
             plus_button.kill()
 
@@ -158,9 +110,9 @@ def select_save():
     art3 = Art(load_image('select UI/Island 1.png', 'MENU'), 1360, 560)
     art4 = Art(load_image('select UI/Island 2.png', 'MENU'), 1020, 460)
     bookmark_button = Button(350, 0, start_screen, load_image('select UI/Bookmark.png', 'MENU'),
-                             (all_sprites, button_layer), factor_x, factor_y)
+                             (all_sprites, button_layer), FACTOR_X, FACTOR_Y)
     plus_button = Button(549, 834, plus, load_image('select UI/Plus.png', 'MENU'),
-                         (all_sprites, button_layer), factor_x, factor_y)
+                         (all_sprites, button_layer), FACTOR_X, FACTOR_Y)
 
     MYEVENTTYPE = pygame.USEREVENT + 1
     pygame.time.set_timer(MYEVENTTYPE, 50)
@@ -193,13 +145,14 @@ def select_save():
         clock.tick(fps)
 
 
+# Экран настроек
 def settings():
     initialization()
 
     bg = Background(load_image('settings UI/Background.png', 'MENU'), 0, 0, bottom_layer)
     gear = Gearwheel()
     bookmark_button = Button(350, 0, start_screen, load_image('select UI/Bookmark.png', 'MENU'),
-                             (all_sprites, button_layer), factor_x, factor_y)
+                             (all_sprites, button_layer), FACTOR_X, FACTOR_Y)
 
     MYEVENTTYPE = pygame.USEREVENT + 1
     pygame.time.set_timer(MYEVENTTYPE, 100)

@@ -42,16 +42,16 @@ class Gearwheel(pygame.sprite.Sprite):
         super().__init__(all_sprites, mid_layer)
         self.image = load_image('settings UI/1.png', 'MENU')
         self.rect = self.image.get_rect()
-        self.rect.x = 1150 * factor_x
-        self.rect.y = 280 * factor_y
+        self.rect.x = 1150 * FACTOR_X
+        self.rect.y = 280 * FACTOR_Y
         self.current = 1
 
     def update(self):
         self.current = (self.current % 4) + 1
         if self.current == 4:
-            self.rect.y = 274 * factor_y
+            self.rect.y = 274 * FACTOR_Y
         else:
-            self.rect.y = 270 * factor_y
+            self.rect.y = 270 * FACTOR_Y
         self.image = load_image(f'settings UI/{self.current}.png', 'MENU')
 
 
@@ -61,8 +61,8 @@ class Art(pygame.sprite.Sprite):
         super().__init__(all_sprites, mid_layer)
         self.image = image
         self.rect = self.image.get_rect()
-        self.rect.x = x * factor_x
-        self.rect.y = y * factor_y
+        self.rect.x = x * FACTOR_X
+        self.rect.y = y * FACTOR_Y
 
         self.vector = choice([-1, 1])
         self.amplitude = randint(self.rect.height // 15, self.rect.height // 12)
@@ -123,8 +123,8 @@ class Mountain(pygame.sprite.Sprite):
         super().__init__(all_sprites, mid_layer)
         self.image = load_image('menu UI/Mountain.png', 'MENU')
         self.rect = self.image.get_rect()
-        self.rect.x = 1096 * factor_x
-        self.rect.y = 569 * factor_y
+        self.rect.x = 1096 * FACTOR_X
+        self.rect.y = 569 * FACTOR_Y
 
 
 # Класс заднего фона (можно использовать где угодно)
@@ -133,20 +133,20 @@ class Background(pygame.sprite.Sprite):
         super().__init__(all_sprites, group)
         self.image = image
         self.rect = self.image.get_rect()
-        self.rect.x = x * factor_x
-        self.rect.y = y * factor_y
+        self.rect.x = x * FACTOR_X
+        self.rect.y = y * FACTOR_Y
 
 
 # Класс платформы, перенесено из main
 class Platform(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, width, height, group):
         super().__init__(group)
-        self.image = pygame.Surface((width * factor_x, height * factor_y), pygame.SRCALPHA)
+        self.image = pygame.Surface((width * FACTOR_X, height * FACTOR_Y), pygame.SRCALPHA)
         self.image.fill(pygame.Color("white"))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
-        self.rect.x = pos_x * factor_x
-        self.rect.y = pos_y * factor_y
+        self.rect.x = pos_x * FACTOR_X
+        self.rect.y = pos_y * FACTOR_Y
 
 
 # Класс игрока, перенесено из main
@@ -209,11 +209,11 @@ class Player(pygame.sprite.Sprite):
 
     def move(self, direction):
         if direction == "right":
-            self.rect.x += 5 * factor_x * 60 / fps
+            self.rect.x += 5 * FACTOR_X * 60 / fps
             self.set_animation("move_right")
 
         elif direction == "left":
-            self.rect.x -= 5 * factor_x * 60 / fps
+            self.rect.x -= 5 * FACTOR_X * 60 / fps
             self.set_animation("move_left")
 
         self.is_moving = True
@@ -226,9 +226,9 @@ class Player(pygame.sprite.Sprite):
             self.start_pos = self.rect.x
             if direction == "right":
                 self.set_animation("dash_right")
-                self.end_pos = self.start_pos + self.dash_speed * factor_x
+                self.end_pos = self.start_pos + self.dash_speed * FACTOR_X
             elif direction == "left":
-                self.end_pos = self.start_pos - self.dash_speed * factor_x
+                self.end_pos = self.start_pos - self.dash_speed * FACTOR_X
                 self.set_animation("dash_left")
 
             # Устанавливаем время начала рывка
@@ -241,7 +241,7 @@ class Player(pygame.sprite.Sprite):
         hits_after = pygame.sprite.spritecollide(self, self.all_group, False)
         for hit in hits_after:
             if pygame.sprite.collide_mask(self, hit):
-                if self.rect.y + self.rect.height - round(factor_y + 1) * 1 - 1 == hit.rect.y:
+                if self.rect.y + self.rect.height - round(FACTOR_Y + 1) * 1 - 1 == hit.rect.y:
                     self.fall_speed = self.jump_strength
                     self.is_ground = False
 
@@ -282,14 +282,14 @@ class Player(pygame.sprite.Sprite):
         self.wall_collision()
 
         # Обновляем позицию по оси Y
-        self.rect.y += self.fall_speed * factor_y * 60 / fps
+        self.rect.y += self.fall_speed * FACTOR_Y * 60 / fps
 
         # обновляем координаты по Y координате (препятствия над и под)
         hits = pygame.sprite.spritecollide(self, self.all_group, False)
         for hit in hits:
             if pygame.sprite.collide_mask(self, hit):
                 if self.rect.y - hit.rect.y < hit.rect.y - self.rect.y:
-                    self.rect.y -= abs(self.rect.y + self.rect.height - hit.rect.y) - round(factor_y + 1) * 1
+                    self.rect.y -= abs(self.rect.y + self.rect.height - hit.rect.y) - round(FACTOR_Y + 1) * 1
                     self.fall_speed = 0
                     self.is_ground = True
                     break

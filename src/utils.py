@@ -1,5 +1,4 @@
 # Файл для вспомогательных функций
-# Типа загрузки изображения, карты или музыки
 import json
 import os
 import sys
@@ -8,18 +7,23 @@ import pygame
 with open('../settings.json') as file:
     settings = json.load(file)
 
+# Задаем основные настраиваемые параметры из settings.json
+# fps и volume НЕ константы так как будут меняться в настройках в реальном времени
+# для изменения размера экрана мы будем использовать перезаход в игру, так что они константы
 fps = settings['FPS']
 volume = settings['FPS']
-clock = pygame.time.Clock()
-size = WIDTH, HEIGHT = 16 * settings['SIZE FACTOR'], 9 * settings['SIZE FACTOR']
+SIZE = WIDTH, HEIGHT = 16 * settings['SIZE FACTOR'], 9 * settings['SIZE FACTOR']
 
+# Инициализируем pygame
 pygame.init()
+clock = pygame.time.Clock()
+
 # Задается размер экрана с соотношением 16:9, позже это пропишем в другом месте
-screen = pygame.display.set_mode(size, pygame.NOFRAME)
+screen = pygame.display.set_mode(SIZE, pygame.NOFRAME)
 
 # факторы, которые умножаем на каждый x/y, для работы с размером экрана
-factor_x = WIDTH / 1920
-factor_y = HEIGHT / 1080
+FACTOR_X = WIDTH / 1920
+FACTOR_Y = HEIGHT / 1080
 
 # Определяем группы спрайтов
 all_sprites = pygame.sprite.Group()
@@ -30,6 +34,7 @@ button_layer = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 
 
+# Полностью очищаем объекты прошлой сцены
 def initialization():
     all_sprites.empty()
     bottom_layer.empty()
@@ -54,7 +59,7 @@ def load_image(name, mode=None):
     elif mode == 'MENU':
         x = image.get_width()
         y = image.get_height()
-        image = pygame.transform.scale(image, (x * factor_x, y * factor_y))
+        image = pygame.transform.scale(image, (x * FACTOR_X, y * FACTOR_Y))
         image = image.convert_alpha()
     return image
 
@@ -75,7 +80,7 @@ def load_animation(folder_path):
     for file_name in files:
         full_path = os.path.join(base_folder, file_name)
         image = load_image(full_path)
-        image = pygame.transform.scale(image, (100 * factor_x, 87 * factor_y))
+        image = pygame.transform.scale(image, (100 * FACTOR_X, 87 * FACTOR_Y))
         frames.append(image)
 
     return frames
