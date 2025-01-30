@@ -14,7 +14,6 @@ class Player(pygame.sprite.Sprite):
 
         # Прописываем физические параметры
         self.gravity = 0.6
-        self.acceleration = 0.5
 
         # Прописываем параметры игрока
         self.fall_speed = 0
@@ -66,11 +65,11 @@ class Player(pygame.sprite.Sprite):
 
     def move(self, direction):
         if direction == "right":
-            self.rect.x += 5 * factor_x
+            self.rect.x += 5 * factor_x * 60 / fps
             self.set_animation("move_right")
 
         elif direction == "left":
-            self.rect.x -= 5 * factor_x
+            self.rect.x -= 5 * factor_x * 60 / fps
             self.set_animation("move_left")
 
         self.is_moving = True
@@ -98,7 +97,7 @@ class Player(pygame.sprite.Sprite):
         hits_after = pygame.sprite.spritecollide(self, self.all_group, False)
         for hit in hits_after:
             if pygame.sprite.collide_mask(self, hit):
-                if abs(self.rect.y + self.rect.height - hit.rect.y) < 3:
+                if self.rect.y + self.rect.height - round(factor_y + 1) * 1 - 1 == hit.rect.y:
                     self.fall_speed = self.jump_strength
                     self.is_ground = False
 
@@ -133,20 +132,20 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         # Применяем гравитацию
-        self.fall_speed += self.gravity
+        self.fall_speed += self.gravity * 60 / fps
 
         # Проверяем на столкновения со стенками
         self.wall_collision()
 
         # Обновляем позицию по оси Y
-        self.rect.y += self.fall_speed * factor_y
+        self.rect.y += self.fall_speed * factor_y * 60 / fps
 
         # обновляем координаты по Y координате (препятствия над и под)
         hits = pygame.sprite.spritecollide(self, self.all_group, False)
         for hit in hits:
             if pygame.sprite.collide_mask(self, hit):
                 if self.rect.y - hit.rect.y < hit.rect.y - self.rect.y:
-                    self.rect.y -= abs(self.rect.y + self.rect.height - hit.rect.y)
+                    self.rect.y -= abs(self.rect.y + self.rect.height - hit.rect.y) - round(factor_y + 1) * 1
                     self.fall_speed = 0
                     self.is_ground = True
                     break
@@ -229,7 +228,7 @@ class Platform(pygame.sprite.Sprite):
 class Game:
     def __init__(self):
         pygame.init()
-        self.size = width, height
+        self.size = WIDTH, HEIGHT
         pygame.display.set_caption("Корабли ходят по небу")
         self.screen = pygame.display.set_mode(self.size, pygame.NOFRAME)
         self.clock = pygame.time.Clock()
@@ -272,17 +271,17 @@ class Game:
             self.player.update()
             self.all_group.draw(self.screen)
 
-            self.clock.tick(60)
+            self.clock.tick(fps)
             pygame.display.flip()
 
         pygame.quit()
 
 
-# screen_log = start_screen()
-# while screen_log not in ('run_game', 'close'):
-#     screen_log = screen_log()
-# if screen_log == 'close':
-#     pygame.quit()
+screen_log = start_screen()
+while screen_log not in ('run_game', 'close'):
+    screen_log = screen_log()
+if screen_log == 'close':
+    pygame.quit()
 
 if __name__ == "__main__":
     game_instance = Game()

@@ -65,18 +65,18 @@ class Ship(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.move_factor = uniform(1, 3)
         if self.vector == -1:
-            self.rect.x = width
+            self.rect.x = WIDTH
             if self.image == ship1_image:
                 self.image = pygame.transform.flip(self.image, True, False)
         if self.vector == 1:
             self.rect.x = 0
             if self.image == ship2_image:
                 self.image = pygame.transform.flip(self.image, True, False)
-        self.rect.y = randint(0, height - self.rect.height * 2)
+        self.rect.y = randint(0, HEIGHT - self.rect.height * 2)
 
     def update(self):
-        self.rect.x += self.vector * self.move_factor * 60 / FPS
-        if width + 10 < self.rect.x or self.rect.x < 0:
+        self.rect.x += self.vector * self.move_factor * 60 / fps
+        if WIDTH + 10 < self.rect.x or self.rect.x < 0:
             self.__init__(self.vector)
 
 
@@ -90,14 +90,14 @@ class Cloud(pygame.sprite.Sprite):
         self.image.set_alpha(100)
         self.rect = self.image.get_rect()
         if self.vector == -1:
-            self.rect.x = width
+            self.rect.x = WIDTH
         if self.vector == 1:
             self.rect.x = -20
-        self.rect.y = randint(0 + 20, height - self.rect.height)
+        self.rect.y = randint(0 + 20, HEIGHT - self.rect.height)
 
     def update(self):
-        self.rect.x += self.vector * self.move_factor * 60 / FPS
-        if width + 20 < self.rect.x or self.rect.x < 0 - 40:
+        self.rect.x += self.vector * self.move_factor * 60 / fps
+        if WIDTH + 20 < self.rect.x or self.rect.x < 0 - 40:
             self.__init__(self.vector)
 
 
@@ -198,7 +198,7 @@ def play():
         button_layer.draw(screen)
 
         pygame.display.flip()
-        clock.tick(FPS)
+        clock.tick(fps)
 
 
 def settings():
@@ -233,7 +233,7 @@ def settings():
         button_layer.draw(screen)
 
         pygame.display.flip()
-        clock.tick(FPS)
+        clock.tick(fps)
 
 
 all_sprites = pygame.sprite.Group()
@@ -279,4 +279,4 @@ def start_screen():
         button_layer.draw(screen)
 
         pygame.display.flip()
-        clock.tick(FPS)
+        clock.tick(fps)

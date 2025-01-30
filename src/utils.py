@@ -1,17 +1,20 @@
 # Файл для вспомогательных функций
 # Типа загрузки изображения, карты или музыки
-
-
+import json
 import os
 import sys
 import pygame
 
-FPS = 60
-clock = pygame.time.Clock()
-size = width, height = 16 * 50, 9 * 50
+with open('../settings.json') as file:
+    settings = json.load(file)
 
-factor_x = width / 1920
-factor_y = height / 1080
+fps = settings['FPS']
+volume = settings['FPS']
+clock = pygame.time.Clock()
+size = WIDTH, HEIGHT = 16 * settings['SIZE FACTOR'], 9 * settings['SIZE FACTOR']
+
+factor_x = WIDTH / 1920
+factor_y = HEIGHT / 1080
 
 
 # Функция для добавления изображений
