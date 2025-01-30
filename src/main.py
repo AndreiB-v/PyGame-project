@@ -2,7 +2,7 @@ import pygame
 from utils import load_image
 from animation import Animation
 from intro import *
-from map import Map
+from map import Map # Привет
 
 
 class Player(pygame.sprite.Sprite):
