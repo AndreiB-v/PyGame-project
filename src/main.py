@@ -98,9 +98,7 @@ class Player(pygame.sprite.Sprite):
         hits_after = pygame.sprite.spritecollide(self, self.all_group, False)
         for hit in hits_after:
             if pygame.sprite.collide_mask(self, hit):
-                # print(self.rect.y + self.rect.height - 1 * round(1 + factor_y), hit.rect.y)
                 if abs(self.rect.y + self.rect.height - hit.rect.y) < 3:
-                    print('yes')
                     self.fall_speed = self.jump_strength
                     self.is_ground = False
 
