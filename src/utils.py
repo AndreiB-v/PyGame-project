@@ -5,10 +5,11 @@
 import os
 import sys
 import pygame
+from pytmx import load_pygame
 
 FPS = 60
 clock = pygame.time.Clock()
-size = width, height = 16 * 50, 9 * 50
+size = width, height = 16 * 79, 9 * 78
 
 factor_x = width / 1920
 factor_y = height / 1080

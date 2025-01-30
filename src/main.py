@@ -2,13 +2,14 @@ import pygame
 from utils import load_image
 from animation import Animation
 from intro import *
+from map import Map
 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, group, pos, *args):
         super().__init__(group)
 
-        self.all_group = args[0]
+        self.platforms_group = args[0]
 
         # Прописываем физические параметры
         self.gravity = 0.6
@@ -59,12 +60,11 @@ class Player(pygame.sprite.Sprite):
     def move(self, direction):
         if direction == "right":
             self.rect.x += 5 * factor_x
-            self.set_animation("move_right")
 
         elif direction == "left":
             self.rect.x -= 5 * factor_x
-            self.set_animation("move_left")
 
+        self.set_animation(f"move_{direction}")
         self.is_moving = True
 
     def dash(self, direction):
@@ -74,11 +74,11 @@ class Player(pygame.sprite.Sprite):
             # Запоминаем начальную и конечную позиции для плавного движения
             self.start_pos = self.rect.x
             if direction == "right":
-                self.set_animation("dash_right")
                 self.end_pos = self.start_pos + self.dash_speed * factor_x
             elif direction == "left":
                 self.end_pos = self.start_pos - self.dash_speed * factor_x
-                self.set_animation("dash_left")
+
+            self.set_animation(f"dash_{direction}")
 
             # Устанавливаем время начала рывка
             self.dash_start_time = current_time
@@ -90,10 +90,7 @@ class Player(pygame.sprite.Sprite):
             self.fall_speed = self.jump_strength
             self.is_ground = False
 
-            if self.direction == "right":
-                self.set_animation("jump_right")
-            else:
-                self.set_animation("jump_left")
+            self.set_animation(f"jump_{self.direction}")
 
     def update(self):
         # Применяем гравитацию
@@ -103,7 +100,7 @@ class Player(pygame.sprite.Sprite):
         if not self.is_ground:
             self.rect.y += self.fall_speed * factor_y
 
-            hits = pygame.sprite.spritecollide(self, self.all_group, False)
+            hits = pygame.sprite.spritecollide(self, self.platforms_group, False, collided=pygame.sprite.collide_mask)
             if hits:
                 self.fall_speed = 0
                 self.is_ground = True
@@ -129,28 +126,16 @@ class Player(pygame.sprite.Sprite):
                 self.is_dashing = False
 
                 # Сбрасываем кадры анимации для рывка
-                if self.direction == "right":
-                    self.set_animation("dash_right")
-                else:
-                    self.set_animation("dash_left")
+                self.set_animation(f"dash_{self.direction}")
 
         # Если игрок стоит, то меняем анимацию на анимацию стояния) бездействия, или на анимацию прыжка
         if self.is_dashing:
-            if self.direction == "right":
-                self.current_animation = self.animations["dash_right"]
-            else:
-                self.current_animation = self.animations["dash_left"]
+            self.current_animation = self.animations[f"dash_{self.direction}"]
 
         elif (not self.is_ground and self.is_moving) or not self.is_ground:
-            if self.direction == "right":
-                self.current_animation = self.animations["jump_right"]
-            else:
-                self.current_animation = self.animations["jump_left"]
+            self.current_animation = self.animations[f"jump_{self.direction}"]
         elif not self.is_moving:
-            if self.direction == "right":
-                self.current_animation = self.animations["idle_right"]
-            else:
-                self.current_animation = self.animations["idle_left"]
+            self.current_animation = self.animations[f"idle_{self.direction}"]
 
         self.is_moving = False
 
@@ -177,14 +162,16 @@ class Game:
         self.screen = pygame.display.set_mode(self.size)
         self.clock = pygame.time.Clock()
 
-        player_pos = (50 * factor_x, 100 * factor_y)
-
         # Создаём группы
         self.player_group = pygame.sprite.Group()
-        self.all_group = pygame.sprite.Group()
+        self.map = Map(screen, "loco1")
+        groups = self.map.get_groups()
 
-        self.player = Player(self.player_group, player_pos, self.all_group)
-        Platform(0, 300, self.all_group)
+        self.all_group = groups[0]
+        self.platforms = groups[1]
+        self.die_blocks = groups[2]
+        player_pos = self.map.get_player_start_position() or 700, 50
+        self.player = Player(self.player_group, player_pos, self.platforms)
 
     def run(self):
         running = True
