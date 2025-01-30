@@ -1,0 +1,25 @@
+{
+    "expandedProjectPaths": [
+        ".",
+        ".venv/Lib/site-packages",
+        ".venv/Lib/site-packages/setuptools",
+        ".venv/Lib"
+    ],
+    "openFiles": [
+        "Mossy - TileSet.tsx",
+        "Tileset.tsx",
+        "tilesetpp.tsx",
+        "modular-tileset.tsx",
+        "GrassTileset.tsx"
+    ],
+    "recentFiles": [
+        "GrassTileset.tsx",
+        "modular-tileset.tsx",
+        "tilesetpp.tsx",
+        "Tileset.tsx",
+        "Mossy - TileSet.tsx",
+        "Tiles_32x32.tsx",
+        "4.tsx",
+        "shop_anim.tsx"
+    ]
+}
