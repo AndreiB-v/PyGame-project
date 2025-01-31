@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.1" orientation="orthogonal" renderorder="right-down" width="100" height="100" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="2">
+<map version="1.10" tiledversion="1.11.1" orientation="orthogonal" renderorder="right-down" width="100" height="100" tilewidth="16" tileheight="16" infinite="0" nextlayerid="9" nextobjectid="2">
  <tileset firstgid="1" source="tileset2.tsx"/>
  <tileset firstgid="1161" source="tileset1.tsx"/>
  <tileset firstgid="1359" source="tiles3.tsx"/>
  <tileset firstgid="2085" source="back.tsx"/>
+ <tileset firstgid="6181" source="background.tsx"/>
  <objectgroup id="5" name="mobileBackground"/>
  <layer id="1" name="background" width="100" height="100" opacity="0.5">
   <data encoding="base64">

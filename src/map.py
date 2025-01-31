@@ -19,6 +19,7 @@ class Map:
         self.all_sprites = pygame.sprite.Group()
         self.platforms_group = pygame.sprite.Group()
         self.die_block_group = pygame.sprite.Group()
+        self.background_color_group = pygame.sprite.Group()
         self.create_tile_sprites()
         self.player_start_position = self.get_player_start_position()
 
@@ -31,8 +32,13 @@ class Map:
                     tile = Tile(image, tile_x, tile_y)
                     if 'platforms' in layer.name.lower():
                         self.platforms_group.add(tile)
+                        continue
                     elif 'dieblocks' in layer.name.lower():
                         self.die_block_group.add(tile)
+                        continue
+                    elif 'backgroundcolor' in layer.name.lower():
+                        self.background_color_group.add(tile)
+                        continue
                     self.all_sprites.add(tile)
 
     def get_player_start_position(self):
@@ -42,7 +48,7 @@ class Map:
         return None
 
     def get_groups(self):
-        return self.all_sprites, self.platforms_group, self.die_block_group
+        return self.all_sprites, self.platforms_group, self.die_block_group, self.background_color_group
 
     def render(self):
         for layer in self.tmx_data.visible_layers:

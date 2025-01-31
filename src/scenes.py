@@ -1,3 +1,5 @@
+from pygame.examples.cursors import image
+
 from objects import *
 from map import Map
 
@@ -11,14 +13,14 @@ def game():
     # Создаём объект карты
     map = Map(screen, "loco1")
     groups = map.get_groups() # Получаем все группы спрайтов с нашей карты
-    bottom_layer = groups[1] # Передаём игроку 1 аргумент, т.к. метод get_groups возращает группу platforms второй
+    top_layer = groups[1] # Передаём игроку 1 аргумент, т.к. метод get_groups возращает группу platforms второй
 
     # Заполняем группы
-    top_layer = groups[2] # die блоки
+    Background(load_image("images/first_background.jpg"), 0, 0, bottom_layer)
     mid_layer = groups[0]
+    button_layer = groups[2] # die блоки
 
-
-    player = Player(player_group, player_pos, bottom_layer, top_layer)
+    player = Player(player_group, player_pos, top_layer, button_layer)
 
     while True:
         for event in pygame.event.get():

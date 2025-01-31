@@ -162,7 +162,7 @@ class Player(pygame.sprite.Sprite):
 
         # Прописываем параметры игрока
         self.fall_speed = 0
-        self.jump_strength = -15
+        self.jump_strength = -14
         self.is_ground = False
 
         # Параметры для рывка
@@ -278,8 +278,11 @@ class Player(pygame.sprite.Sprite):
     def die_block_collision(self):
         # получаем пересекаемые объекты и перебираем каждый отдельно
         hits = pygame.sprite.spritecollide(self, self.die_blocks_group, False)
-        if hits:
-            print("Вы погибли") # Прописать возрождение
+        for hit in hits:
+            # Если маски пересекаются
+            if pygame.sprite.collide_mask(self, hit):
+                self.rect.x = 1800 * FACTOR_X
+                self.rect.y = 100 * FACTOR_Y
 
     def update(self):
         # Применяем гравитацию
