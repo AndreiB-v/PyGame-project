@@ -22,6 +22,8 @@ class Map:
         self.background_color_group = pygame.sprite.Group()
         self.create_tile_sprites()
         self.player_start_position = self.get_player_start_position()
+        self.width = self.tmx_data.width
+        self.height = self.tmx_data.height
 
     def create_tile_sprites(self):
         for layer in self.tmx_data.visible_layers:
@@ -50,8 +52,12 @@ class Map:
     def get_groups(self):
         return self.all_sprites, self.platforms_group, self.die_block_group, self.background_color_group
 
-    def render(self):
+    def render(self, screen, camera):
         for layer in self.tmx_data.visible_layers:
             if isinstance(layer, pytmx.TiledTileLayer):
                 for x, y, image in layer.tiles():
-                    self.screen.blit(image, (x * self.tmx_data.tilewidth, y * self.tmx_data.tileheight))
+                    tile_x = x * self.tmx_data.tilewidth - camera.x
+                    tile_y = y * self.tmx_data.tileheight - camera.y
+                    if camera.colliderect(
+                            pygame.Rect(tile_x, tile_y, self.tmx_data.tilewidth, self.tmx_data.tileheight)):
+                        screen.blit(image, (tile_x, tile_y))

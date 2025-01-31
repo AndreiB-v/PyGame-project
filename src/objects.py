@@ -284,6 +284,14 @@ class Player(pygame.sprite.Sprite):
                 self.rect.x = 1800 * FACTOR_X
                 self.rect.y = 100 * FACTOR_Y
 
+    def draw(self, screen, camera): # Отрисовка игрока с учётом смещения камеры.
+        # Корректируем координаты игрока относительно камеры
+        offset_x = self.rect.x - camera.x
+        offset_y = self.rect.y - camera.y
+
+        # Отрисовываем игрока на экране
+        screen.blit(self.image, (offset_x, offset_y))
+
     def update(self):
         # Применяем гравитацию
         self.fall_speed += self.gravity * 60 / fps

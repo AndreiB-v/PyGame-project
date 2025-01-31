@@ -1,7 +1,6 @@
-from pygame.examples.cursors import image
-
 from objects import *
 from map import Map
+from camera import update_camera, draw_group_with_camera
 
 # Основной цикл игры
 def game():
@@ -20,7 +19,11 @@ def game():
     mid_layer = groups[0]
     button_layer = groups[2] # die блоки
 
+    # Создаём игрока
     player = Player(player_group, player_pos, top_layer, button_layer)
+
+    # Создаём камеру
+    camera = pygame.Rect(0, 0, WIDTH, HEIGHT)
 
     while True:
         for event in pygame.event.get():
@@ -40,17 +43,26 @@ def game():
         if keys[pygame.K_LCTRL]:  # Рывок
             player.dash(player.direction)
 
+        # Очистка экрана
         screen.fill((0, 0, 0))
 
         # Обновляем игрока
         player.update()
 
-        # Рисуем все группы
-        bottom_layer.draw(screen)
-        mid_layer.draw(screen)
-        player_group.draw(screen)
-        top_layer.draw(screen)
-        button_layer.draw(screen)
+        # Обновление камеры
+        update_camera(player.rect, camera, map.width, map.height)
+
+        # Отрисовка карты с учётом камеры
+        map.render(screen, camera)
+
+        # Рисуем все группы спрайтов с учётом камеры
+        draw_group_with_camera(bottom_layer, screen, camera)
+        draw_group_with_camera(mid_layer, screen, camera)
+        draw_group_with_camera(top_layer, screen, camera)
+        draw_group_with_camera(button_layer, screen, camera)
+
+        # Отрисовка игрока относительно камеры
+        player.draw(screen, camera)
 
         pygame.display.flip()
         clock.tick(fps)
