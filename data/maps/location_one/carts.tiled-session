@@ -9,7 +9,7 @@
     ],
     "fileStates": {
         "back.tsx": {
-            "scaleInDock": 0.75,
+            "scaleInDock": 1,
             "scaleInEditor": 1
         },
         "background.tsx": {
@@ -17,15 +17,15 @@
             "scaleInEditor": 1
         },
         "loco1.tmx": {
-            "scale": 0.25,
-            "selectedLayer": 2,
+            "scale": 1.5,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 102,
-                "y": 924
+                "x": 695.6666666666666,
+                "y": 872.6666666666666
             }
         },
         "tiles3.tsx": {
-            "scaleInDock": 1,
+            "scaleInDock": 2,
             "scaleInEditor": 1
         },
         "tileset1.tsx": {
@@ -33,7 +33,7 @@
             "scaleInEditor": 1
         },
         "tileset2.tsx": {
-            "scaleInDock": 0.5,
+            "scaleInDock": 0.75,
             "scaleInEditor": 1
         }
     },
