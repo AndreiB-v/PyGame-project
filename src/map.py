@@ -41,11 +41,12 @@ class Map:
                     elif 'backgroundcolor' in layer.name.lower():
                         self.background_color_group.add(tile)
                         continue
-                    self.all_sprites.add(tile)
+                    else:
+                        self.all_sprites.add(tile)
 
     def get_player_start_position(self):
         for obj in self.tmx_data.objects:
-            if obj.name == 'player':
+            if obj.type == 'player':
                 return (obj.x, obj.y)
         return None
 

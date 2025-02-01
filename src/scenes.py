@@ -7,10 +7,10 @@ def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
-    player_pos = (1800 * FACTOR_X, 100 * FACTOR_Y)
-
     # Создаём объект карты
     map = Map(screen, "loco1")
+    player_pos = (int(map.get_player_start_position()[0]), int(map.get_player_start_position()[1])) # Получаем позицию игрока с карты
+
     groups = map.get_groups() # Получаем все группы спрайтов с нашей карты
     top_layer = groups[1] # Передаём игроку 1 аргумент, т.к. метод get_groups возращает группу platforms второй
 

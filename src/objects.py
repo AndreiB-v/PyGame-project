@@ -164,6 +164,7 @@ class Player(pygame.sprite.Sprite):
         self.fall_speed = 0
         self.jump_strength = -14
         self.is_ground = False
+        self.pos = pos
 
         # Параметры для рывка
         self.can_dash = True
@@ -184,8 +185,8 @@ class Player(pygame.sprite.Sprite):
                            "move_left": Animation("walk", frame_rate=200, flip_horizontal=True),
                            "idle_right": Animation("idle", frame_rate=200),
                            "idle_left": Animation("idle", frame_rate=200, flip_horizontal=True),
-                           "jump_right": Animation("jump", frame_rate=230),
-                           "jump_left": Animation("jump", frame_rate=230, flip_horizontal=True),
+                           "jump_right": Animation("jump", frame_rate=180),
+                           "jump_left": Animation("jump", frame_rate=180, flip_horizontal=True),
                            "dash_right": Animation("dash", frame_rate=180),
                            "dash_left": Animation("dash", frame_rate=180, flip_horizontal=True)}
         self.current_animation = self.animations["idle_right"]
@@ -193,7 +194,7 @@ class Player(pygame.sprite.Sprite):
         # Создаём спрайт игрока
         self.image = self.current_animation.get_frame()
         self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = pos
+        self.rect.x, self.rect.y = self.pos
 
         # Создаем отступы от маски, именно они образуют хит-бокс
         self.mask = pygame.mask.from_surface(self.image)
@@ -281,8 +282,8 @@ class Player(pygame.sprite.Sprite):
         for hit in hits:
             # Если маски пересекаются
             if pygame.sprite.collide_mask(self, hit):
-                self.rect.x = 1800 * FACTOR_X
-                self.rect.y = 100 * FACTOR_Y
+                self.rect.x = self.pos[0]
+                self.rect.y = self.pos[1]
 
     def draw(self, screen, camera): # Отрисовка игрока с учётом смещения камеры.
         # Корректируем координаты игрока относительно камеры
