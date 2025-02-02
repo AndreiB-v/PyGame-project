@@ -22,6 +22,8 @@ def game():
     # Создаём игрока
     player = Player(player_group, player_pos, top_layer, button_layer)
 
+    jump_pressed_last_frame = False # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
+
     # Создаём камеру
     camera = pygame.Rect(0, 0, WIDTH, HEIGHT)
 
@@ -32,16 +34,20 @@ def game():
 
         # Проверка зажатия WASD или стрелочек
         keys = pygame.key.get_pressed()
+        jump_pressed_now = keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE]
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             player.direction = "right"
             player.move("right")
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             player.direction = "left"
             player.move("left")
-        if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE]:
+        if jump_pressed_now and not jump_pressed_last_frame:
             player.jump()
         if keys[pygame.K_LCTRL]:  # Рывок
             player.dash(player.direction)
+
+        # Обновляем переменную для следующего кадра:
+        jump_pressed_last_frame = jump_pressed_now
 
         # Очистка экрана
         screen.fill((0, 0, 0))

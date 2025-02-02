@@ -165,6 +165,7 @@ class Player(pygame.sprite.Sprite):
         self.jump_strength = -14
         self.is_ground = False
         self.pos = pos
+        self.double_jump_available = False
 
         # Параметры для рывка
         self.can_dash = True
@@ -240,18 +241,21 @@ class Player(pygame.sprite.Sprite):
 
     def jump(self):
         self.rect.y += 1
-        hits_after = pygame.sprite.spritecollide(self, self.all_group, False)
-        for hit in hits_after:
-            if pygame.sprite.collide_mask(self, hit):
-                if self.rect.y + self.rect.height - round(FACTOR_Y + 1) * 1 - 1 == hit.rect.y:
-                    self.fall_speed = self.jump_strength
-                    self.is_ground = False
-
-                    if self.direction == "right":
-                        self.set_animation("jump_right")
-                    else:
-                        self.set_animation("jump_left")
-                    break
+        if self.is_ground:
+            hits_after = pygame.sprite.spritecollide(self, self.all_group, False)
+            for hit in hits_after:
+                if pygame.sprite.collide_mask(self, hit):
+                     if self.rect.y + self.rect.height - round(FACTOR_Y + 1) * 1 - 1 == hit.rect.y:
+                        self.fall_speed = self.jump_strength
+                        self.is_ground = False
+                        self.double_jump_available = True  # Разрешаем двойной прыжок
+                        self.set_animation(f"jump_{self.direction}")
+                        break
+        else:
+            if self.double_jump_available:
+                self.fall_speed = self.jump_strength + 3 # Второй прыжок делаем слабже чем первый
+                self.double_jump_available = False
+                self.set_animation(f"jump_{self.direction}")
 
     def wall_collision(self):
         # получаем пересекаемые объекты и перебираем каждый отдельно
@@ -316,6 +320,8 @@ class Player(pygame.sprite.Sprite):
                     self.rect.y = hit.rect.y + hit.rect.height - self.top_indent
                     self.fall_speed = 0
                     break
+        else:
+            self.is_ground = False
 
         # Проверяем возможность выполнения рывка
         current_time = pygame.time.get_ticks()
