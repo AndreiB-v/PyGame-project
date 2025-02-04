@@ -50,10 +50,6 @@ def game():
     # Создаём игрока
     player = Player(player_group, player_pos, top_layer, button_layer)
 
-    # Создаём корабли
-    # for i in range(10):
-    #     Ship(random.choice([-1, 1]), int(map.width) * 16, int(map.height) * 16, ships_layer)
-
     jump_pressed_last_frame = False  # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
 
     # Создаём камеру
@@ -102,8 +98,6 @@ def game():
             player.direction = "left"
             player.move("left")
         if jump_pressed_now and not jump_pressed_last_frame:
-            player.jump()
-        if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE]:
             player.jump()
         if keys[pygame.K_LCTRL]:  # Рывок
             player.dash(player.direction)
