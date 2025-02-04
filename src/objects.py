@@ -8,6 +8,7 @@ from utils import *
 ship1_image = load_image('menu UI/Ship 1.png', 'MENU')
 ship2_image = load_image('menu UI/Ship 2.png', 'MENU')
 
+
 # Класс кнопки
 class Button(pygame.sprite.Sprite):
     def __init__(self, x, y, function, image, groups):
@@ -254,6 +255,7 @@ class Ship(pygame.sprite.Sprite):
         if self.width + 10 < self.rect.x or self.rect.x < 0:
             self.__init__(self.vector, self.width, self.height, self.group)
 
+
 # Класс горы (это из экрана Start screen, статичное говно)
 class Mountain(pygame.sprite.Sprite):
     def __init__(self):
@@ -383,7 +385,7 @@ class Player(pygame.sprite.Sprite):
             hits_after = pygame.sprite.spritecollide(self, self.all_group, False)
             for hit in hits_after:
                 if pygame.sprite.collide_mask(self, hit):
-                     if self.rect.y + self.rect.height - round(FACTOR_Y + 1) * 1 - 1 == hit.rect.y:
+                    if self.rect.y + self.rect.height - round(FACTOR_Y + 1) * 1 - 1 == hit.rect.y:
                         self.fall_speed = self.jump_strength
                         self.is_ground = False
                         self.double_jump_available = True  # Разрешаем двойной прыжок
@@ -427,7 +429,7 @@ class Player(pygame.sprite.Sprite):
                 self.rect.x = self.pos[0]
                 self.rect.y = self.pos[1]
 
-    def draw(self, screen, camera): # Отрисовка игрока с учётом смещения камеры.
+    def draw(self, screen, camera):  # Отрисовка игрока с учётом смещения камеры.
         # Корректируем координаты игрока относительно камеры
         offset_x = self.rect.x - camera.x
         offset_y = self.rect.y - camera.y

@@ -7,6 +7,7 @@ from objects import *
 from map import Map
 from camera import update_camera, draw_group_with_camera
 
+
 # Основной цикл игры
 def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
@@ -14,10 +15,11 @@ def game():
 
     # Создаём объект карты
     map = Map(screen, "loco1")
-    player_pos = (int(map.get_player_start_position()[0]), int(map.get_player_start_position()[1])) # Получаем позицию игрока с карты
+    player_pos = (
+    int(map.get_player_start_position()[0]), int(map.get_player_start_position()[1]))  # Получаем позицию игрока с карты
 
-    groups = map.get_groups() # Получаем все группы спрайтов с нашей карты
-    top_layer = groups[1] # Передаём игроку 1 аргумент, т.к. метод get_groups возращает группу platforms второй
+    groups = map.get_groups()  # Получаем все группы спрайтов с нашей карты
+    top_layer = groups[1]  # Передаём игроку 1 аргумент, т.к. метод get_groups возращает группу platforms второй
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pygame.Surface(screen.get_size())
@@ -30,19 +32,20 @@ def game():
     push = False  # зажата ли (Е)
     e_image = load_image('images/e.png', 'MENU')  # картинка Е
 
-    dialogs = [Dialog('Привет, ЭТО диАЛОГи!', 300 * FACTOR_X, 200 * FACTOR_Y, 100 * FACTOR_X,
+    dialogs = [Dialog('Привет, ЭТО диАЛОГи!',
+                      int(map.get_player_start_position()[0]),
+                      int(map.get_player_start_position()[1]),
+                      100 * FACTOR_X,
                       'Хм, ЭтО КрУтО!', 'ОКЕ!')]
     # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
 
     pause = Pause()
     end_game = EndGame(1400 * FACTOR_X, 200 * FACTOR_Y)
 
-    player_pos = (50 * FACTOR_X, 100 * FACTOR_Y)
-
     # Заполняем группы
     Background(load_image("images/first_background.jpg"), 0, 0, bottom_layer)
     mid_layer = groups[0]
-    button_layer = groups[2] # die блоки
+    button_layer = groups[2]  # die блоки
 
     # Создаём игрока
     player = Player(player_group, player_pos, top_layer, button_layer)
@@ -51,7 +54,7 @@ def game():
     # for i in range(10):
     #     Ship(random.choice([-1, 1]), int(map.width) * 16, int(map.height) * 16, ships_layer)
 
-    jump_pressed_last_frame = False # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
+    jump_pressed_last_frame = False  # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
 
     # Создаём камеру
     camera = pygame.Rect(0, 0, WIDTH, HEIGHT)
