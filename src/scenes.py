@@ -1,3 +1,6 @@
+import random
+from random import choice as ch
+
 from objects import *
 from map import Map
 from camera import update_camera, draw_group_with_camera
@@ -21,6 +24,10 @@ def game():
 
     # Создаём игрока
     player = Player(player_group, player_pos, top_layer, button_layer)
+
+    # Создаём корабли
+    # for i in range(10):
+    #     Ship(random.choice([-1, 1]), int(map.width) * 16, int(map.height) * 16, ships_layer)
 
     jump_pressed_last_frame = False # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
 
@@ -63,6 +70,7 @@ def game():
 
         # Рисуем все группы спрайтов с учётом камеры
         draw_group_with_camera(bottom_layer, screen, camera)
+        # ships_layer.draw(screen)
         draw_group_with_camera(mid_layer, screen, camera)
         draw_group_with_camera(top_layer, screen, camera)
         draw_group_with_camera(button_layer, screen, camera)
@@ -81,10 +89,10 @@ def start_screen():
     bg = Background(load_image('menu UI/Background.png', 'MENU'), 670, 0, bottom_layer)
     fg = Background(load_image('menu UI/Foreground.png', 'MENU'), 0, 0, top_layer)
 
-    ship1 = Ship(1)
+    ship1 = Ship(1, WIDTH, HEIGHT, mid_layer)
     cloud1 = Cloud(1)
     mountain = Mountain()
-    ship2 = Ship(-1)
+    ship2 = Ship(-1, WIDTH, HEIGHT, mid_layer)
     cloud2 = Cloud(-1)
     play_button = Button(32, 528, select_save, load_image('menu UI/PlayButton.png', 'MENU'),
                          (all_sprites, button_layer), FACTOR_X, FACTOR_Y)

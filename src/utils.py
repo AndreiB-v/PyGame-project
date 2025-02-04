@@ -26,6 +26,7 @@ FACTOR_X = WIDTH / 1920
 FACTOR_Y = HEIGHT / 1080
 
 # Определяем группы спрайтов
+ships_layer = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 bottom_layer = pygame.sprite.Group()
 top_layer = pygame.sprite.Group()
@@ -36,6 +37,7 @@ player_group = pygame.sprite.Group()
 
 # Полностью очищаем объекты прошлой сцены
 def initialization():
+    ships_layer.empty()
     all_sprites.empty()
     bottom_layer.empty()
     top_layer.empty()

@@ -3,6 +3,8 @@ from random import choice, randint, uniform
 from src.animation import Animation
 from utils import *
 
+ship1_image = load_image('menu UI/Ship 1.png', 'MENU')
+ship2_image = load_image('menu UI/Ship 2.png', 'MENU')
 
 # Класс кнопки
 class Button(pygame.sprite.Sprite):
@@ -99,23 +101,29 @@ class Cloud(pygame.sprite.Sprite):
 
 # Класс корабля (это из экрана Start screen, движется туда/сюда + поворачивает объект)
 class Ship(pygame.sprite.Sprite):
-    def __init__(self, vector):
-        super().__init__(all_sprites, mid_layer)
-        self.image = choice([load_image('menu UI/Ship 1.png', 'MENU'),
-                             load_image('menu UI/Ship 2.png', 'MENU')])
+    def __init__(self, vector, width, height, group):
+        super().__init__(all_sprites, group)
+        self.image = choice([ship1_image, ship2_image])
         self.vector = vector
         self.rect = self.image.get_rect()
         self.move_factor = uniform(1, 3)
+        self.width = width
+        self.height = height
+        self.group = group
         if self.vector == -1:
-            self.rect.x = WIDTH
-            if self.image == load_image('menu UI/Ship 1.png', 'MENU'):
+            self.rect.x = self.width
+            if self.image == ship1_image:
                 self.image = pygame.transform.flip(self.image, True, False)
         if self.vector == 1:
             self.rect.x = 0
-            if self.image == load_image('menu UI/Ship 2.png', 'MENU'):
+            if self.image == ship2_image:
                 self.image = pygame.transform.flip(self.image, True, False)
-        self.rect.y = randint(0, HEIGHT - self.rect.height * 2)
+        self.rect.y = randint(0, self.height - self.rect.height * 2)
 
+    def update(self):
+        self.rect.x += self.vector * self.move_factor * 60 / fps
+        if self.width + 10 < self.rect.x or self.rect.x < 0:
+            self.__init__(self.vector, self.width, self.height, self.group)
 
 # Класс горы (это из экрана Start screen, статичное говно)
 class Mountain(pygame.sprite.Sprite):
@@ -162,7 +170,7 @@ class Player(pygame.sprite.Sprite):
 
         # Прописываем параметры игрока
         self.fall_speed = 0
-        self.jump_strength = -14
+        self.jump_strength = -12.5
         self.is_ground = False
         self.pos = pos
         self.double_jump_available = False
@@ -253,7 +261,7 @@ class Player(pygame.sprite.Sprite):
                         break
         else:
             if self.double_jump_available:
-                self.fall_speed = self.jump_strength + 3 # Второй прыжок делаем слабже чем первый
+                self.fall_speed = self.jump_strength
                 self.double_jump_available = False
                 self.set_animation(f"jump_{self.direction}")
 
