@@ -20,6 +20,8 @@ def game():
     e_image = load_image('images/e.png', 'MENU')  # картинка Е
 
     dialogs = [Dialog('Привет, ЭТО диАЛОГи!', 300 * FACTOR_X, 200 * FACTOR_Y, 100 * FACTOR_X,
+                      'Хм, ЭтО КрУтО!', 'ОКЕ!'),
+               Dialog('Поздравляем, вы прошли игру', 1400 * FACTOR_X, 200 * FACTOR_Y, 100 * FACTOR_X,
                       'Хм, ЭтО КрУтО!', 'ОКЕ!')]
     # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
 

@@ -139,6 +139,15 @@ class Pause(Popup):
         screen.blit(text, (text_x, text_y))
 
 
+class EndGame(Popup, pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(150, (0, 0, 0))
+        self.buttons.append(Button(1920 / 2 + 200, 1080 / 2.5 - 121, 'start_screen',
+                                   load_image('buttons/Over.png', 'MENU'), self.popup_layer))
+        self.buttons.append(Button(1920 / 2 - 200, 1080 / 2.5 - 121, 'settings',
+                                   load_image('buttons/Off.png', 'MENU'), self.popup_layer))
+
+
 # Класс шестерёнки (это из экрана Settings)
 class Gearwheel(pygame.sprite.Sprite):
     def __init__(self):

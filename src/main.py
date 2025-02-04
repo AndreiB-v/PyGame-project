@@ -2,7 +2,7 @@ from scenes import *
 
 if __name__ == "__main__":
     # Задаем 'логи экрана', то есть screen_log содержит функцию исполняемой сцены scenes
-    screen_log = start_screen()
+    screen_log = game()
     # Каждая функция из scenes возвращает функцию следующей сцены
     while screen_log != 'close':
         screen_log = screen_log()
