@@ -124,7 +124,7 @@ def render_popup(popup_class):
                     return value
 
         screen.fill((0, 0, 0))
-        popup_class.draw(screen)
+        popup_class.draw_popup(screen)
 
         pygame.display.flip()
         clock.tick(fps)

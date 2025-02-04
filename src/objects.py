@@ -60,7 +60,7 @@ class Popup:
                 self.active = False
                 return value
 
-    def draw(self, screen):
+    def draw_popup(self, screen):
         screen.blit(self.last_frame, (0, 0))
         screen.blit(self.background, (0, 0))
 
@@ -98,8 +98,8 @@ class Dialog(Popup):
     def check_pos(self, x, y):
         return abs(x - self.x) <= self.radius and abs(y - self.y) <= self.radius
 
-    def draw(self, screen):
-        super().draw(screen)
+    def draw_popup(self, screen):
+        super().draw_popup(screen)
 
         pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT - HEIGHT * 0.75)))
         pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT - HEIGHT * 0.75)))
@@ -124,8 +124,8 @@ class Pause(Popup):
         self.buttons.append(Button(1920 / 2 - 400 - 140, 1080 / 2.5 - 121, 'settings',
                                    load_image('buttons/Settings.png', 'MENU'), self.popup_layer))
 
-    def draw(self, screen):
-        super().draw(screen)
+    def draw_popup(self, screen):
+        super().draw_popup(screen)
 
         pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT - HEIGHT * 0.75)))
         pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT - HEIGHT * 0.75)))
@@ -141,11 +141,31 @@ class Pause(Popup):
 
 class EndGame(Popup, pygame.sprite.Sprite):
     def __init__(self, x, y):
-        super().__init__(150, (0, 0, 0))
-        self.buttons.append(Button(1920 / 2 + 200, 1080 / 2.5 - 121, 'start_screen',
+        pygame.sprite.Sprite.__init__(self, all_sprites, mid_layer)
+        Popup.__init__(self, 100, (255, 255, 255))
+        self.image = load_image('images/flag.png')
+        self.image = pygame.transform.scale(self.image, (100 * FACTOR_X, 100 * FACTOR_Y))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.buttons.append(Button(1920 / 2 + 200 - 140, 1080 / 2.5 - 121, 'start_screen',
                                    load_image('buttons/Over.png', 'MENU'), self.popup_layer))
-        self.buttons.append(Button(1920 / 2 - 200, 1080 / 2.5 - 121, 'settings',
+        self.buttons.append(Button(1920 / 2 - 200 - 140, 1080 / 2.5 - 121, 'quit',
                                    load_image('buttons/Off.png', 'MENU'), self.popup_layer))
+
+    def draw_popup(self, screen):
+        super().draw_popup(screen)
+
+        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+        self.popup_layer.draw(screen)
+
+        font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf',
+                                int(100 * FACTOR_X))
+        text = font.render('ИГРА ПРОЙДЕНА', 1, (205, 185, 3))
+        text_x = WIDTH * 0.5 - text.get_width() // 2
+        text_y = HEIGHT * 0.85 - text.get_height() // 2
+        screen.blit(text, (text_x, text_y))
 
 
 # Класс шестерёнки (это из экрана Settings)

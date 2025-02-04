@@ -20,12 +20,11 @@ def game():
     e_image = load_image('images/e.png', 'MENU')  # картинка Е
 
     dialogs = [Dialog('Привет, ЭТО диАЛОГи!', 300 * FACTOR_X, 200 * FACTOR_Y, 100 * FACTOR_X,
-                      'Хм, ЭтО КрУтО!', 'ОКЕ!'),
-               Dialog('Поздравляем, вы прошли игру', 1400 * FACTOR_X, 200 * FACTOR_Y, 100 * FACTOR_X,
                       'Хм, ЭтО КрУтО!', 'ОКЕ!')]
     # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
 
     pause = Pause()
+    end_game = EndGame(1400 * FACTOR_X, 200 * FACTOR_Y)
 
     player_pos = (50 * FACTOR_X, 100 * FACTOR_Y)
 
@@ -36,6 +35,14 @@ def game():
     Platform(798, 300, 700, 1000, top_layer)
 
     while True:
+        if pygame.sprite.collide_mask(player, end_game):
+            end_game.set_active(screen)
+            end_game_log = render_popup(end_game)
+            if end_game_log in 'start_screen':
+                return start_screen
+            elif end_game_log == 'quit':
+                return 'close'
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return 'close'
