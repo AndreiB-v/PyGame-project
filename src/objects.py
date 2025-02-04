@@ -1,5 +1,7 @@
 from random import choice, randint, uniform
 
+import pygame.font
+
 from src.animation import Animation
 from utils import *
 
@@ -8,16 +10,16 @@ ship2_image = load_image('menu UI/Ship 2.png', 'MENU')
 
 # Класс кнопки
 class Button(pygame.sprite.Sprite):
-    def __init__(self, x, y, function, image, groups, factor_x, factor_y):
+    def __init__(self, x, y, function, image, groups):
         super().__init__(groups)
         self.backup_image = image
         self.image = image
         self.rect = self.image.get_rect()
-        self.rect.x = x * factor_x
-        self.rect.y = y * factor_y
+        self.rect.x = x * FACTOR_X
+        self.rect.y = y * FACTOR_Y
         self.function = function
 
-        self.size_factor = (self.rect.width / 10 * factor_x, self.rect.height / 10 * factor_y)
+        self.size_factor = (self.rect.width / 10 * FACTOR_X, self.rect.height / 10 * FACTOR_Y)
 
     def update(self, *args):
         x, y = args[0]
@@ -36,6 +38,133 @@ class Button(pygame.sprite.Sprite):
                                                      self.rect.height - self.size_factor[1]))
                 self.rect.x += self.size_factor[0] / 2
                 self.rect.y += self.size_factor[1] / 2
+
+
+# Класс всплывающего окна, используется для диалогов, паузы и т.д (от него следует наследоваться)
+class Popup:
+    def __init__(self, blackout, color):
+        self.popup_layer = pygame.sprite.Group()
+        self.last_frame = None
+        self.buttons = []
+        self.active = False
+
+        self.background = pygame.Surface(screen.get_size())
+        self.background.fill(color)
+        self.background.set_alpha(blackout)
+
+    def update(self, pos, mode):
+        for i in self.buttons:
+            value = i.update(pos, mode)
+            if value:
+                self.active = False
+                return value
+
+    def draw_popup(self, screen):
+        screen.blit(self.last_frame, (0, 0))
+        screen.blit(self.background, (0, 0))
+
+    def set_active(self, screen):
+        self.active = True
+        self.last_frame = pygame.Surface(screen.get_size())
+        self.last_frame.blit(screen, (0, 0))
+
+
+# Класс диалога: question - вопрос, x_activation - позиция x на карте, y_activation - позиция y на карте,
+# radius - радиус на котором действует активация, *answers - ответы
+class Dialog(Popup):
+    def __init__(self, question, x_activation, y_activation, radius, *answers):
+        super().__init__(100, (255, 255, 255))
+        self.question = question
+        self.radius = radius
+        self.x = x_activation
+        self.y = y_activation
+
+        for answer in enumerate(answers):
+            button = load_image('buttons/Empty.png', 'MENU')
+
+            font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf', int(50 * FACTOR_X))
+            text = font.render(answer[1], 1, (208, 185, 14))
+            text_w = text.get_width()
+            text_h = text.get_height()
+            text_x = button.get_rect().width * 0.5 - text_w // 2
+            text_y = button.get_rect().height * 0.5 - text_h // 2
+            button.blit(text, (text_x, text_y))
+
+            self.buttons.append(Button(WIDTH * 0.05, 50 + 250 * answer[0], answer[1],
+                                       button, self.popup_layer))
+
+    # Функция возвращает, является ли точка в радиусе активации анимации
+    def check_pos(self, x, y):
+        return abs(x - self.x) <= self.radius and abs(y - self.y) <= self.radius
+
+    def draw_popup(self, screen):
+        super().draw_popup(screen)
+
+        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+
+        self.popup_layer.draw(screen)
+
+        font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf', 40)
+        text = font.render(self.question, 1, (208, 185, 14))
+        text_x = WIDTH * 0.5 - text.get_width() // 2
+        text_y = HEIGHT * 0.85 - text.get_height() // 2
+        screen.blit(text, (text_x, text_y))
+
+
+# Класс паузы
+class Pause(Popup):
+    def __init__(self):
+        super().__init__(150, (0, 0, 0))
+        self.buttons.append(Button(1920 / 2 - 180, 1080 / 2.5 - 180, 'return',
+                                   load_image('buttons/ReturnToGame.png', 'MENU'), self.popup_layer))
+        self.buttons.append(Button(1920 / 2 + 400 - 140, 1080 / 2.5 - 121, 'start_screen',
+                                   load_image('buttons/Over.png', 'MENU'), self.popup_layer))
+        self.buttons.append(Button(1920 / 2 - 400 - 140, 1080 / 2.5 - 121, 'settings',
+                                   load_image('buttons/Settings.png', 'MENU'), self.popup_layer))
+
+    def draw_popup(self, screen):
+        super().draw_popup(screen)
+
+        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+        self.popup_layer.draw(screen)
+
+        font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf',
+                                int(100 * FACTOR_X))
+        text = font.render('ИГРА ОСТАНОВЛЕНА', 1, (205, 185, 3))
+        text_x = WIDTH * 0.5 - text.get_width() // 2
+        text_y = HEIGHT * 0.85 - text.get_height() // 2
+        screen.blit(text, (text_x, text_y))
+
+
+class EndGame(Popup, pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self, all_sprites, mid_layer)
+        Popup.__init__(self, 100, (255, 255, 255))
+        self.image = load_image('images/flag.png')
+        self.image = pygame.transform.scale(self.image, (100 * FACTOR_X, 100 * FACTOR_Y))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.buttons.append(Button(1920 / 2 + 200 - 140, 1080 / 2.5 - 121, 'start_screen',
+                                   load_image('buttons/Over.png', 'MENU'), self.popup_layer))
+        self.buttons.append(Button(1920 / 2 - 200 - 140, 1080 / 2.5 - 121, 'quit',
+                                   load_image('buttons/Off.png', 'MENU'), self.popup_layer))
+
+    def draw_popup(self, screen):
+        super().draw_popup(screen)
+
+        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+        self.popup_layer.draw(screen)
+
+        font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf',
+                                int(100 * FACTOR_X))
+        text = font.render('ИГРА ПРОЙДЕНА', 1, (205, 185, 3))
+        text_x = WIDTH * 0.5 - text.get_width() // 2
+        text_y = HEIGHT * 0.85 - text.get_height() // 2
+        screen.blit(text, (text_x, text_y))
 
 
 # Класс шестерёнки (это из экрана Settings)
@@ -150,7 +279,8 @@ class Platform(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, width, height, group):
         super().__init__(group)
         self.image = pygame.Surface((width * FACTOR_X, height * FACTOR_Y), pygame.SRCALPHA)
-        self.image.fill(pygame.Color("white"))
+        self.image.fill((255, 255, 255))
+        # self.image.fill((50, 36, 11), (10, 10, width, height))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x = pos_x * FACTOR_X
