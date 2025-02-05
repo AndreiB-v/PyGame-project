@@ -101,8 +101,8 @@ class Dialog(Popup):
     def draw_popup(self, screen):
         super().draw_popup(screen)
 
-        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT - HEIGHT * 0.75)))
-        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT)))
+        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT)))
 
         self.popup_layer.draw(screen)
 
@@ -127,8 +127,8 @@ class Pause(Popup):
     def draw_popup(self, screen):
         super().draw_popup(screen)
 
-        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT - HEIGHT * 0.75)))
-        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT)))
+        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT)))
         self.popup_layer.draw(screen)
 
         font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf',

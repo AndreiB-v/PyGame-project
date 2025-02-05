@@ -2,6 +2,7 @@ import pygame
 import pytmx
 from pytmx.util_pygame import load_pygame
 
+
 class Tile(pygame.sprite.Sprite):
     def __init__(self, image, x, y):
         super().__init__()
@@ -11,6 +12,7 @@ class Tile(pygame.sprite.Sprite):
             self.mask = pygame.mask.from_surface(self.image)
         else:
             self.mask = None
+
 
 class Map:
     def __init__(self, screen, map_name):
@@ -47,7 +49,7 @@ class Map:
     def get_player_start_position(self):
         for obj in self.tmx_data.objects:
             if obj.type == 'player':
-                return (obj.x, obj.y)
+                return obj.x, obj.y
         return None
 
     def get_groups(self):
