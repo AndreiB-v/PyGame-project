@@ -1,11 +1,12 @@
 import random
 from random import choice as ch
 
+import pygame.image
 from pygame.rect import Rect
 
 from objects import *
 from map import Map
-from camera import update_camera, draw_group_with_camera
+from camera import Camera
 
 
 # Основной цикл игры
@@ -34,7 +35,7 @@ def game():
 
     dialogs = [Dialog('Привет, ЭТО диАЛОГи!',
                       int(map.get_player_start_position()[0]),
-                      int(map.get_player_start_position()[1]),
+                      int(map.get_player_start_position()[1]) + 100,
                       100 * FACTOR_X,
                       'Хм, ЭтО КрУтО!', 'ОКЕ!')]
     # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
@@ -45,15 +46,15 @@ def game():
     # Заполняем группы
     Background(load_image("images/first_background.jpg"), 0, 0, bottom_layer)
     mid_layer = groups[0]
-    button_layer = groups[2]  # die блоки
+    dop_layer = groups[2]  # die блоки
 
     # Создаём игрока
-    player = Player(player_group, player_pos, top_layer, button_layer)
+    player = Player(player_group, player_pos, top_layer, dop_layer)
 
     jump_pressed_last_frame = False  # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
 
     # Создаём камеру
-    camera = pygame.Rect(0, 0, WIDTH, HEIGHT)
+    camera = Camera()
 
     while True:
         if pygame.sprite.collide_mask(player, end_game):
@@ -72,9 +73,10 @@ def game():
                     screen2 = pygame.Surface(screen.get_size())
                     screen2.set_colorkey((0, 0, 0))
                     if player.direction == 'right':
-                        activ_dial_x, activ_dial_y = player.rect.x + player.rect.width, player.rect.y
+                        activ_dial_x, activ_dial_y = (player.rect.x + player.rect.width - camera.x(),
+                                                      player.rect.y - camera.y())
                     else:
-                        activ_dial_x, activ_dial_y = player.rect.x, player.rect.y
+                        activ_dial_x, activ_dial_y = player.rect.x - camera.x(), player.rect.y - camera.y()
                     degree = 0
                     push = True
                 if event.key == 27:
@@ -111,6 +113,17 @@ def game():
         # Обновляем игрока
         player.update()
 
+        # Обновление камеры
+        camera.update(player)
+
+        # Рисуем все группы спрайтов с учётом камеры
+        camera.draw_group(bottom_layer, screen)
+        camera.draw_group(mid_layer, screen)
+        camera.draw_group(dop_layer, screen)
+        camera.draw_group(top_layer, screen)
+        camera.draw_group(player_group, screen)
+
+        # ______________ ДИАЛОГИ __________________ #
         cur_dialog = None
         for item_dialog in dialogs:
             if player.rect.colliderect(item_dialog.x - item_dialog.radius + player.left_indent,
@@ -119,23 +132,6 @@ def game():
                                        item_dialog.radius * 2):
                 cur_dialog = item_dialog
 
-        # Обновление камеры
-        update_camera(player.rect, camera, map.width, map.height)
-
-        # Отрисовка карты с учётом камеры
-        map.render(screen, camera)
-
-        # Рисуем все группы спрайтов с учётом камеры
-        draw_group_with_camera(bottom_layer, screen, camera)
-        # ships_layer.draw(screen)
-        draw_group_with_camera(mid_layer, screen, camera)
-        draw_group_with_camera(top_layer, screen, camera)
-        draw_group_with_camera(button_layer, screen, camera)
-
-        # Отрисовка игрока относительно камеры
-        player.draw(screen, camera)
-
-        # ______________ ДИАЛОГИ __________________ #
         if cur_dialog and push:
             for i in range(10):
                 degree += 1 * 60 / fps
@@ -147,12 +143,12 @@ def game():
                                   activ_dial_y - e_image.get_rect().height / 2))
         elif cur_dialog:
             e_image.set_alpha(100)
-            screen.blit(e_image, (cur_dialog.x - e_image.get_rect().width / 2,
-                                  cur_dialog.y - e_image.get_rect().height / 2))
+            screen.blit(e_image, (cur_dialog.x - e_image.get_rect().width / 2 - camera.x(),
+                                  cur_dialog.y - e_image.get_rect().height / 2 - camera.y()))
         if cur_dialog:
             screen3.fill((0, 0, 0))
-            pygame.draw.rect(screen3, pygame.Color('white'), (cur_dialog.x - cur_dialog.radius,
-                                                              cur_dialog.y - cur_dialog.radius,
+            pygame.draw.rect(screen3, pygame.Color('white'), (cur_dialog.x - cur_dialog.radius - camera.x(),
+                                                              cur_dialog.y - cur_dialog.radius - camera.y(),
                                                               cur_dialog.radius * 2,
                                                               cur_dialog.radius * 2))
             screen.blit(screen3, (0, 0))

@@ -1,12 +1,24 @@
 import pygame
 
-def update_camera(player_rect, camera_rect, world_width, world_height):
-    # Камера следит за игроком
-    camera_rect.center = player_rect.center
+from src.utils import WIDTH, HEIGHT
 
 
-def draw_group_with_camera(group, screen, camera):
-    for sprite in group:
-        offset_x = sprite.rect.x - camera.x
-        offset_y = sprite.rect.y - camera.y
-        screen.blit(sprite.image, (offset_x, offset_y))
+class Camera:
+    def __init__(self):
+        self.preview_rect = pygame.rect.Rect(0, 0, WIDTH, HEIGHT)
+
+    def update(self, target):
+        # Камера следит за игроком
+        self.preview_rect.center = target.rect.center
+
+    def draw_group(self, group, screen):
+        for sprite in group:
+            offset_x = sprite.rect.x - self.preview_rect.x
+            offset_y = sprite.rect.y - self.preview_rect.y
+            screen.blit(sprite.image, (offset_x, offset_y))
+
+    def x(self):
+        return self.preview_rect.x
+
+    def y(self):
+        return self.preview_rect.y
