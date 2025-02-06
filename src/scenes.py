@@ -8,7 +8,6 @@ from objects import *
 from map import Map
 from camera import Camera
 
-
 # Основной цикл игры
 def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
@@ -25,7 +24,15 @@ def game():
         int(dream_map.get_umiko_position()[1]))
 
     groups = dream_map.get_groups()  # Получаем все группы спрайтов с нашей карты
+
+    # Получаем все файлы облаков
+    files = get_images("../data/maps/location_one/clouds")
+    clouds = []
+    for i in files:
+        clouds.append(load_image(f"maps/location_one/clouds/{i}"))
+
     # ЛОКАЛЬНЫЕ (для game) группы
+    cloud_layer = pygame.sprite.Group()
     background_layer = groups[0]  # Бэкграунд
     platforms_group = groups[1]  # Группа платформ
     deadly_layer = groups[2]  # Смертельные блоки
@@ -59,6 +66,10 @@ def game():
 
     # Создаём камеру
     camera = Camera()
+
+    # Создаём облака
+    for _ in range(15):
+        BgCloud(cloud_layer, clouds, dream_map.width, dream_map.height)
 
     while True:
         if pygame.sprite.collide_mask(player, end_game):
@@ -117,11 +128,16 @@ def game():
         # Обновляем игрока
         player.update()
 
+        # Обновляем облака
+        cloud_layer.update(dream_map.width)
+
         # Обновление камеры
         camera.update(player)
 
         # Рисуем все группы спрайтов с учётом камеры
         camera.draw_group(bottom_layer, screen)
+        # cloud_layer.draw(screen)
+        camera.draw_group(cloud_layer, screen)
         camera.draw_group(background_layer, screen)
         camera.draw_group(mid_layer, screen)
         camera.draw_group(platforms_group, screen)

@@ -3,6 +3,7 @@ import json
 import os
 import sys
 from math import sin
+import json
 
 import pygame
 
@@ -76,6 +77,13 @@ def load_image(name, mode=None):
             image = image.convert_alpha()
     return image
 
+
+# Получение всех картинок
+def get_images(dir):
+    directory = dir
+    files = os.listdir(directory) # Имена всех файлов
+
+    return files
 
 # Функция для получения всех кадров анмиации
 def load_animation(folder_path):

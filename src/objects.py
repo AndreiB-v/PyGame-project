@@ -229,6 +229,37 @@ class Cloud(pygame.sprite.Sprite):
             self.__init__(self.vector)
 
 
+class BgCloud(pygame.sprite.Sprite):
+    def __init__(self, group, clouds, screen_width, screen_height):
+        super().__init__(group)
+        self.image = choice(clouds)
+        self.rect = self.image.get_rect()
+        self.screen_width = screen_width * 16
+        self.screen_height = screen_height * 16
+
+        self.direction = choice([-1, 1])
+
+        # Устанавливаем начальную позицию облака
+        if self.direction == 1:  # Спавн слева
+            self.rect.x = -self.rect.width
+        else:  # Спавн справа
+            self.rect.x = self.screen_width
+            self.image = pygame.transform.flip(self.image, True, False)  # Отразить облако
+
+        self.rect.y = randint(0, self.screen_height - self.rect.height)  # Высота спавна
+
+        self.speed = uniform(1.2, 3.5) * self.direction
+
+    def update(self, *args):
+        self.rect.x += int(self.speed)  # Приводим к int для гарантированного движения
+
+        # Если облако ушло за экран — создаём его заново
+        if self.rect.x > self.screen_width or self.rect.x < -self.rect.width:
+            self.rect.x = -self.rect.width if self.direction == 1 else self.screen_width
+            self.rect.y = randint(0, self.screen_height - self.rect.height)  # Новая высота
+            self.speed = uniform(1.2, 3.5) * self.direction  # Перегенерируем скорость
+
+
 # Класс корабля (это из экрана Start screen, движется туда/сюда + поворачивает объект)
 class Ship(pygame.sprite.Sprite):
     def __init__(self, vector, width, height, group):
