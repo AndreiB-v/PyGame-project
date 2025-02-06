@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.1" orientation="orthogonal" renderorder="right-down" width="150" height="150" tilewidth="16" tileheight="16" infinite="0" nextlayerid="9" nextobjectid="15">
+<map version="1.10" tiledversion="1.11.1" orientation="orthogonal" renderorder="right-down" width="150" height="150" tilewidth="16" tileheight="16" infinite="0" nextlayerid="9" nextobjectid="16">
  <tileset firstgid="1" source="tileset2.tsx"/>
  <tileset firstgid="1161" source="tileset1.tsx"/>
  <tileset firstgid="1359" source="tiles3.tsx"/>
@@ -28,5 +28,6 @@
  <objectgroup id="3" name="player">
   <object id="13" name="player" type="player" x="1391.33" y="758.667"/>
   <object id="14" name="umiko" type="umiko" x="557" y="1138"/>
+  <object id="15" name="win" type="win" x="1940.67" y="1956.33"/>
  </objectgroup>
 </map>

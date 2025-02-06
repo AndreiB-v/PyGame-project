@@ -8,8 +8,13 @@ from objects import *
 from map import Map
 from camera import Camera
 
+
 # Основной цикл игры
 def game():
+   dream_card()
+
+# Инициилизация дрим карты
+def dream_card():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
@@ -23,6 +28,10 @@ def game():
         int(dream_map.get_umiko_position()[0]),
         int(dream_map.get_umiko_position()[1]))
 
+    win_flag_pos = (
+        int(dream_map.get_win_flag_position()[0]),
+        int(dream_map.get_win_flag_position()[1]))
+
     groups = dream_map.get_groups()  # Получаем все группы спрайтов с нашей карты
 
     # Получаем все файлы облаков
@@ -32,11 +41,15 @@ def game():
         clouds.append(load_image(f"maps/location_one/clouds/{i}"))
 
     # ЛОКАЛЬНЫЕ (для game) группы
-    cloud_layer = pygame.sprite.Group()
+    back_photo = pygame.sprite.Group() # Статичный бэк
+    cloud_layer = pygame.sprite.Group() # Слой для облаков
     background_layer = groups[0]  # Бэкграунд
     platforms_group = groups[1]  # Группа платформ
     deadly_layer = groups[2]  # Смертельные блоки
     player_group = pygame.sprite.Group()  # Группа игрока
+
+    # background
+    Background(load_image("images/backgroundone.png"), 0, 0, back_photo)
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pygame.Surface(screen.get_size())
@@ -57,7 +70,8 @@ def game():
     # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
 
     pause = Pause()
-    end_game = EndGame(1400 * FACTOR_X, 200 * FACTOR_Y)
+
+    end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
 
     # Создаём игрока
     player = Player(player_group, player_pos, platforms_group, deadly_layer)
@@ -68,7 +82,7 @@ def game():
     camera = Camera()
 
     # Создаём облака
-    for _ in range(15):
+    for _ in range(10):
         BgCloud(cloud_layer, clouds, dream_map.width, dream_map.height)
 
     while True:
@@ -136,7 +150,7 @@ def game():
 
         # Рисуем все группы спрайтов с учётом камеры
         camera.draw_group(bottom_layer, screen)
-        # cloud_layer.draw(screen)
+        camera.draw_group(back_photo, screen)
         camera.draw_group(cloud_layer, screen)
         camera.draw_group(background_layer, screen)
         camera.draw_group(mid_layer, screen)
@@ -187,7 +201,6 @@ def game():
 
         pygame.display.flip()
         clock.tick(fps)
-
 
 # Экран 'приветствия', главная менюшка
 def start_screen():
