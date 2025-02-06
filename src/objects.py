@@ -289,141 +289,23 @@ class Platform(pygame.sprite.Sprite):
         self.rect.y = pos_y * FACTOR_Y
 
 
-class Creature(pygame.sprite.Sprite):
-    def __init__(self, group, pos, platforms_group, deadly_layer):
-        super().__init__(group)
-        self.move_factor = 5  # фактор сдвига по пикселям
-
-        self.platforms_group = platforms_group
-        self.deadly_layer = deadly_layer
-
-        # Прописываем физические параметры
-        self.gravity = 0.6
-
-        # Параметры существа
-        self.is_moving = False
-        self.fall_speed = 0
-        self.jump_strength = -12.5
-        self.is_ground = False
-        self.pos = pos
-        self.direction = "right"  # Куда смотрит существо
-
-        # image и animation прописывать отдельно (см. Player)
-
-    def set_animation(self, animation_name):
-        if self.current_animation != self.animations[animation_name]:
-            self.current_animation = self.animations[animation_name]
-            self.current_animation.current_frame = 0
-        elif animation_name == "idle":
-            self.current_animation.current_frame = 0
-
-    def move(self, direction):
-        if direction == "right":
-            self.rect.x += self.move_factor * FACTOR_X * 60 / fps
-            self.set_animation("move_right")
-
-        elif direction == "left":
-            self.rect.x -= self.move_factor * FACTOR_X * 60 / fps
-            self.set_animation("move_left")
-
-        self.is_moving = True
-
-    def update_hitboxes(self):
-        self.mask = pygame.mask.from_surface(self.image)
-        self.left_indent = min(self.mask.outline(), key=lambda x: x[0])[0]
-        self.right_indent = self.rect.width - max(self.mask.outline(), key=lambda x: x[0])[0] - 1
-        self.top_indent = min(self.mask.outline(), key=lambda x: x[1])[1]
-
-    def wall_collision(self):
-        # получаем пересекаемые объекты и перебираем каждый отдельно
-        hits = pygame.sprite.spritecollide(self, self.platforms_group, False)
-        for hit in hits:
-            # Если маски пересекаются
-            if pygame.sprite.collide_mask(self, hit):
-                # Считаем расстояние игрока относительно объекта, с которым он пересекается
-                # и смещаем его на наименьшее (top_side для избежания багов)
-                left_side = abs(hit.rect.x + hit.rect.width - self.rect.x)
-                right_side = abs(self.rect.x + self.rect.width - hit.rect.x)
-                top_side = abs(self.rect.y + self.rect.height - hit.rect.y)
-                if min(left_side, right_side, top_side) == left_side:
-                    # По скольку эта функция работает, когда упираешься в стенки
-                    self.is_dashing = False
-                    self.dash_start_time = None
-
-                    self.rect.x = hit.rect.x + hit.rect.width - self.left_indent
-                elif min(left_side, right_side, top_side) == right_side:
-                    self.is_dashing = False
-                    self.dash_start_time = None
-
-                    self.rect.x = hit.rect.x - self.rect.width + self.right_indent
-
-    def die_block_collision(self):
-        # получаем пересекаемые объекты и перебираем каждый отдельно
-        hits = pygame.sprite.spritecollide(self, self.deadly_layer, False)
-        for hit in hits:
-            # Если маски пересекаются
-            if pygame.sprite.collide_mask(self, hit):
-                self.rect.x = self.pos[0]
-                self.rect.y = self.pos[1]
-
-    # Если существо стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
-    def passive_animation(self):
-        if not self.is_moving:
-            if self.direction == "right":
-                self.current_animation = self.animations["idle_right"]
-            else:
-                self.current_animation = self.animations["idle_left"]
-
-    def update(self):
-        # Применяем гравитацию
-        self.fall_speed += self.gravity * 60 / fps
-
-        # Проверяем на столкновения со стенками
-        self.wall_collision()
-
-        # Обновляем позицию по оси Y
-        self.rect.y += self.fall_speed * 60 / fps * 0.58  # * FACTOR_Y
-
-        # обновляем координаты по Y координате (препятствия над и под)
-        hits = pygame.sprite.spritecollide(self, self.platforms_group, False)
-        for hit in hits:
-            if pygame.sprite.collide_mask(self, hit):
-                if self.rect.y - hit.rect.y < hit.rect.y - self.rect.y:
-                    self.rect.y -= abs(self.rect.y + self.rect.height - hit.rect.y) - round(FACTOR_Y + 1) * 1
-                    self.fall_speed = 0
-                    self.is_ground = True
-                    break
-                elif self.rect.y - hit.rect.y > hit.rect.y - self.rect.y:
-                    self.rect.y = hit.rect.y + hit.rect.height - self.top_indent
-                    self.fall_speed = 0
-                    break
-        else:
-            self.is_ground = False
-
-
 class Event:
     def __init__(self, duration, cooldown):
         self.duration = duration  # в миллисекундах
         self.cooldown = cooldown  # Время ожидания между событиями в миллисекундах
         self.is_active = False
 
-        self.last_activation = 0
+        self.last_activation = 0  # Обязательно int значение
         self.start_time = None
 
     def time_check(self):
         return pygame.time.get_ticks() - self.last_activation >= self.cooldown
 
-    # возвращает возможно ли активировать событие, если да, то ставит все параметры
     def activation(self):
         current_time = pygame.time.get_ticks()
-        if self.time_check():
-            self.is_active = True
-
-            # Устанавливаем время начала события
-            self.last_activation = current_time
-            self.start_time = current_time
-            return True
-        return False
+        self.is_active = True
+        self.last_activation = current_time
+        self.start_time = current_time
 
     def __bool__(self):
-        return bool(self.last_activation and self.start_time and self.duration)
+        return self.is_active
