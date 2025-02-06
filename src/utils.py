@@ -34,28 +34,24 @@ FACTOR_X = WIDTH / 1920
 FACTOR_Y = HEIGHT / 1080
 
 # Определяем группы спрайтов
-ships_layer = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 bottom_layer = pygame.sprite.Group()
-top_layer = pygame.sprite.Group()
 mid_layer = pygame.sprite.Group()
+top_layer = pygame.sprite.Group()
 button_layer = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
 
 
 # Полностью очищаем объекты прошлой сцены
 def initialization():
-    ships_layer.empty()
     all_sprites.empty()
     bottom_layer.empty()
-    top_layer.empty()
     mid_layer.empty()
+    top_layer.empty()
     button_layer.empty()
-    player_group.empty()
 
 
 # Функция для добавления изображений
-def load_image(name, mode=None):
+def load_image(name, mode=None, factor_x=FACTOR_X, factor_y=FACTOR_Y):
     fullname = os.path.join('../data', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
@@ -72,15 +68,15 @@ def load_image(name, mode=None):
         if 'MENU' in mode:
             x = image.get_width()
             y = image.get_height()
-            image = pygame.transform.scale(image, (x * FACTOR_X, y * FACTOR_Y))
+            image = pygame.transform.scale(image, (x * factor_x, y * factor_y))
             image = image.convert_alpha()
     return image
 
 
 # Функция для получения всех кадров анмиации
-def load_animation(folder_path):
+def load_animation(folder_path, enemy):
     # Путь к папке, где лежат кадры
-    base_folder = os.path.join("../data/images", folder_path)
+    base_folder = os.path.join("../data/images", enemy, folder_path)
 
     if not os.path.isdir(base_folder):
         print(f"Папка {base_folder} не найдена")
@@ -93,7 +89,7 @@ def load_animation(folder_path):
     for file_name in files:
         full_path = os.path.join(base_folder, file_name)
         image = load_image(full_path)
-        image = pygame.transform.scale(image, (100 * FACTOR_X, 87 * FACTOR_Y))
+        image = pygame.transform.scale(image, (100 * 0.58, 87 * 0.58))  # (100 * FACTOR_X, 87 * FACTOR_Y)
         frames.append(image)
 
     return frames
@@ -108,7 +104,7 @@ def return_dot(degree, radius, x, y):
     ch_t = n // 90 + 1 if n / 90 >= n // 90 else n // 90
     if ch_t in (1, 4):
         side_y = -side_y
-    return x + side_x * FACTOR_X, y + side_y * FACTOR_Y
+    return x + side_x * 0.58, y + side_y * 0.58
 
 
 # Рендер класса, унаследованного от Popup, это отдельный цикл, обрабатывающий все нажатия и т.д,

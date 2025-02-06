@@ -2,8 +2,8 @@ from utils import *
 
 
 class Animation:
-    def __init__(self, folder_path, frame_rate, flip_horizontal=False):
-        self.frames = load_animation(folder_path)
+    def __init__(self, folder_path, enemy, frame_rate, flip_horizontal=False):
+        self.frames = load_animation(folder_path, enemy)
         self.frame_rate = frame_rate
         self.current_frame = 0
         self.last_update = pygame.time.get_ticks()

@@ -1,12 +1,9 @@
-import random
-from random import choice as ch
-
 import pygame.image
-from pygame.rect import Rect
 
 from objects import *
 from map import Map
 from camera import Camera
+from src.creatures import Player, Enemy
 
 
 # Основной цикл игры
@@ -14,13 +11,31 @@ def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
-    # Создаём объект карты
-    map = Map(screen, "loco1")
+    # ______________ КАРТА __________________ #
+    dream_map = Map(screen, "loco1")
     player_pos = (
-    int(map.get_player_start_position()[0]), int(map.get_player_start_position()[1]))  # Получаем позицию игрока с карты
+        int(dream_map.get_player_start_position()[0]),
+        int(dream_map.get_player_start_position()[1]))  # Получаем позицию игрока с карты
 
-    groups = map.get_groups()  # Получаем все группы спрайтов с нашей карты
-    top_layer = groups[1]  # Передаём игроку 1 аргумент, т.к. метод get_groups возращает группу platforms второй
+    groups = dream_map.get_groups()  # Получаем все группы спрайтов с нашей карты
+    # ЛОКАЛЬНЫЕ (для game) группы
+    background_layer = groups[0]  # Бэкграунд
+    platforms_group = groups[1]  # Группа платформ
+    deadly_layer = groups[2]  # Смертельные блоки
+    creatures_group = pygame.sprite.Group()  # Группа игрока
+    # ______________ КАРТА __________________ #
+
+    # Создаём игрока
+    player = Player(creatures_group, player_pos, platforms_group, deadly_layer)
+    enemy = Enemy(creatures_group, player_pos, platforms_group, deadly_layer)
+    jump_pressed_last_frame = False  # Новая механика прыжка (для двойного прыжка)
+
+    # Создаём камеру
+    camera = Camera()
+    # Пауза
+    pause = Pause()
+    # Конец игры (не доделано)
+    end_game = EndGame(1400 * FACTOR_X, 200 * FACTOR_Y)
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pygame.Surface(screen.get_size())
@@ -31,30 +46,14 @@ def game():
     degree = 0  # анимация (Е)
     activ_dial_x = activ_dial_y = 0  # положение анимации (Е)
     push = False  # зажата ли (Е)
-    e_image = load_image('images/e.png', 'MENU')  # картинка Е
+    e_image = load_image('images/e.png', 'MENU', factor_x=0.58, factor_y=0.58)  # картинка Е
 
     dialogs = [Dialog('Привет, ЭТО диАЛОГи!',
-                      int(map.get_player_start_position()[0]),
-                      int(map.get_player_start_position()[1]) + 100,
-                      100 * FACTOR_X,
+                      int(dream_map.get_player_start_position()[0]),
+                      int(dream_map.get_player_start_position()[1]) + 100,
+                      100 * 0.7,
                       'Хм, ЭтО КрУтО!', 'ОКЕ!')]
     # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
-
-    pause = Pause()
-    end_game = EndGame(1400 * FACTOR_X, 200 * FACTOR_Y)
-
-    # Заполняем группы
-    Background(load_image("images/first_background.jpg"), 0, 0, bottom_layer)
-    mid_layer = groups[0]
-    dop_layer = groups[2]  # die блоки
-
-    # Создаём игрока
-    player = Player(player_group, player_pos, top_layer, dop_layer)
-
-    jump_pressed_last_frame = False  # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
-
-    # Создаём камеру
-    camera = Camera()
 
     while True:
         if pygame.sprite.collide_mask(player, end_game):
@@ -108,20 +107,23 @@ def game():
         jump_pressed_last_frame = jump_pressed_now
 
         # Очистка экрана
-        screen.fill((0, 0, 0))
+        screen.fill((50, 131, 218))
 
-        # Обновляем игрока
-        player.update()
+        # Обновление всех существ
+        creatures_group.update()
+        enemy.check_trigger_radius(player)
 
         # Обновление камеры
         camera.update(player)
 
         # Рисуем все группы спрайтов с учётом камеры
         camera.draw_group(bottom_layer, screen)
+        camera.draw_group(background_layer, screen)
         camera.draw_group(mid_layer, screen)
-        camera.draw_group(dop_layer, screen)
+        camera.draw_group(platforms_group, screen)
+        camera.draw_group(deadly_layer, screen)
         camera.draw_group(top_layer, screen)
-        camera.draw_group(player_group, screen)
+        camera.draw_group(creatures_group, screen)
 
         # ______________ ДИАЛОГИ __________________ #
         cur_dialog = None

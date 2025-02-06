@@ -289,59 +289,26 @@ class Platform(pygame.sprite.Sprite):
         self.rect.y = pos_y * FACTOR_Y
 
 
-# Класс игрока, перенесено из main
-class Player(pygame.sprite.Sprite):
-    def __init__(self, group, pos, *args):
+class Creature(pygame.sprite.Sprite):
+    def __init__(self, group, pos, platforms_group, deadly_layer):
         super().__init__(group)
+        self.move_factor = 5  # фактор сдвига по пикселям
 
-        self.all_group = args[0]
-        self.die_blocks_group = args[1]
+        self.platforms_group = platforms_group
+        self.deadly_layer = deadly_layer
 
         # Прописываем физические параметры
         self.gravity = 0.6
 
-        # Прописываем параметры игрока
+        # Параметры существа
+        self.is_moving = False
         self.fall_speed = 0
         self.jump_strength = -12.5
         self.is_ground = False
         self.pos = pos
-        self.double_jump_available = False
+        self.direction = "right"  # Куда смотрит существо
 
-        # Параметры для рывка
-        self.can_dash = True
-        self.dash_cooldown = 500  # Время ожидания между рывками в миллисекундах
-        self.last_dash_time = 0
-        self.is_moving = False
-        self.is_dashing = False
-        self.direction = "right"
-
-        self.dash_duration = 200  # Длительность рывка в миллисекундах
-        self.dash_start_time = None
-        self.start_pos = None
-        self.end_pos = None
-        self.dash_speed = 150  # Смещение при рывке
-
-        # Группы анимаций принадлежащих игроку
-        self.animations = {"move_right": Animation("walk", frame_rate=200),
-                           "move_left": Animation("walk", frame_rate=200, flip_horizontal=True),
-                           "idle_right": Animation("idle", frame_rate=200),
-                           "idle_left": Animation("idle", frame_rate=200, flip_horizontal=True),
-                           "jump_right": Animation("jump", frame_rate=180),
-                           "jump_left": Animation("jump", frame_rate=180, flip_horizontal=True),
-                           "dash_right": Animation("dash", frame_rate=180),
-                           "dash_left": Animation("dash", frame_rate=180, flip_horizontal=True)}
-        self.current_animation = self.animations["idle_right"]
-
-        # Создаём спрайт игрока
-        self.image = self.current_animation.get_frame()
-        self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = self.pos
-
-        # Создаем отступы от маски, именно они образуют хит-бокс
-        self.mask = pygame.mask.from_surface(self.image)
-        self.left_indent = min(self.mask.outline(), key=lambda x: x[0])
-        self.right_indent = self.rect.width - max(self.mask.outline(), key=lambda x: x[0])[0] - 1
-        self.top_indent = self.rect.height - max(self.mask.outline(), key=lambda x: x[1])[1] - 1
+        # image и animation прописывать отдельно (см. Player)
 
     def set_animation(self, animation_name):
         if self.current_animation != self.animations[animation_name]:
@@ -352,54 +319,24 @@ class Player(pygame.sprite.Sprite):
 
     def move(self, direction):
         if direction == "right":
-            self.rect.x += 5 * FACTOR_X * 60 / fps
+            self.rect.x += self.move_factor * FACTOR_X * 60 / fps
             self.set_animation("move_right")
 
         elif direction == "left":
-            self.rect.x -= 5 * FACTOR_X * 60 / fps
+            self.rect.x -= self.move_factor * FACTOR_X * 60 / fps
             self.set_animation("move_left")
 
         self.is_moving = True
 
-    def dash(self, direction):
-        current_time = pygame.time.get_ticks()
-
-        if self.can_dash and (current_time - self.last_dash_time >= self.dash_cooldown):
-            # Запоминаем начальную и конечную позиции для плавного движения
-            self.start_pos = self.rect.x
-            if direction == "right":
-                self.set_animation("dash_right")
-                self.end_pos = self.start_pos + self.dash_speed * FACTOR_X
-            elif direction == "left":
-                self.end_pos = self.start_pos - self.dash_speed * FACTOR_X
-                self.set_animation("dash_left")
-
-            # Устанавливаем время начала рывка
-            self.dash_start_time = current_time
-            self.can_dash = False
-            self.last_dash_time = current_time
-
-    def jump(self):
-        self.rect.y += 1
-        if self.is_ground:
-            hits_after = pygame.sprite.spritecollide(self, self.all_group, False)
-            for hit in hits_after:
-                if pygame.sprite.collide_mask(self, hit):
-                     if self.rect.y + self.rect.height - round(FACTOR_Y + 1) * 1 - 1 == hit.rect.y:
-                        self.fall_speed = self.jump_strength
-                        self.is_ground = False
-                        self.double_jump_available = True  # Разрешаем двойной прыжок
-                        self.set_animation(f"jump_{self.direction}")
-                        break
-        else:
-            if self.double_jump_available:
-                self.fall_speed = self.jump_strength
-                self.double_jump_available = False
-                self.set_animation(f"jump_{self.direction}")
+    def update_hitboxes(self):
+        self.mask = pygame.mask.from_surface(self.image)
+        self.left_indent = min(self.mask.outline(), key=lambda x: x[0])[0]
+        self.right_indent = self.rect.width - max(self.mask.outline(), key=lambda x: x[0])[0] - 1
+        self.top_indent = min(self.mask.outline(), key=lambda x: x[1])[1]
 
     def wall_collision(self):
         # получаем пересекаемые объекты и перебираем каждый отдельно
-        hits = pygame.sprite.spritecollide(self, self.all_group, False)
+        hits = pygame.sprite.spritecollide(self, self.platforms_group, False)
         for hit in hits:
             # Если маски пересекаются
             if pygame.sprite.collide_mask(self, hit):
@@ -422,20 +359,20 @@ class Player(pygame.sprite.Sprite):
 
     def die_block_collision(self):
         # получаем пересекаемые объекты и перебираем каждый отдельно
-        hits = pygame.sprite.spritecollide(self, self.die_blocks_group, False)
+        hits = pygame.sprite.spritecollide(self, self.deadly_layer, False)
         for hit in hits:
             # Если маски пересекаются
             if pygame.sprite.collide_mask(self, hit):
                 self.rect.x = self.pos[0]
                 self.rect.y = self.pos[1]
 
-    def draw(self, screen, camera): # Отрисовка игрока с учётом смещения камеры.
-        # Корректируем координаты игрока относительно камеры
-        offset_x = self.rect.x - camera.x
-        offset_y = self.rect.y - camera.y
-
-        # Отрисовываем игрока на экране
-        screen.blit(self.image, (offset_x, offset_y))
+    # Если существо стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
+    def passive_animation(self):
+        if not self.is_moving:
+            if self.direction == "right":
+                self.current_animation = self.animations["idle_right"]
+            else:
+                self.current_animation = self.animations["idle_left"]
 
     def update(self):
         # Применяем гравитацию
@@ -445,10 +382,10 @@ class Player(pygame.sprite.Sprite):
         self.wall_collision()
 
         # Обновляем позицию по оси Y
-        self.rect.y += self.fall_speed * FACTOR_Y * 60 / fps
+        self.rect.y += self.fall_speed * 60 / fps * 0.58  # * FACTOR_Y
 
         # обновляем координаты по Y координате (препятствия над и под)
-        hits = pygame.sprite.spritecollide(self, self.all_group, False)
+        hits = pygame.sprite.spritecollide(self, self.platforms_group, False)
         for hit in hits:
             if pygame.sprite.collide_mask(self, hit):
                 if self.rect.y - hit.rect.y < hit.rect.y - self.rect.y:
@@ -463,64 +400,30 @@ class Player(pygame.sprite.Sprite):
         else:
             self.is_ground = False
 
-        # Проверяем возможность выполнения рывка
+
+class Event:
+    def __init__(self, duration, cooldown):
+        self.duration = duration  # в миллисекундах
+        self.cooldown = cooldown  # Время ожидания между событиями в миллисекундах
+        self.is_active = False
+
+        self.last_activation = 0
+        self.start_time = None
+
+    def time_check(self):
+        return pygame.time.get_ticks() - self.last_activation >= self.cooldown
+
+    # возвращает возможно ли активировать событие, если да, то ставит все параметры
+    def activation(self):
         current_time = pygame.time.get_ticks()
-        if not self.can_dash and (current_time - self.last_dash_time >= self.dash_cooldown):
-            self.can_dash = True  # Разрешаем выполнение рывка снова
+        if self.time_check():
+            self.is_active = True
 
-        # Рывок
-        if self.dash_start_time is not None:
-            self.is_dashing = True
-            elapsed_time = current_time - self.dash_start_time
+            # Устанавливаем время начала события
+            self.last_activation = current_time
+            self.start_time = current_time
+            return True
+        return False
 
-            if elapsed_time < self.dash_duration:
-                progress = elapsed_time / self.dash_duration
-                new_x = int(self.start_pos + (self.end_pos - self.start_pos) * progress)
-                self.rect.x = new_x
-            else:
-                # Завершаем рывок после истечения времени
-                self.rect.x = self.end_pos
-                self.dash_start_time = None  # Сбрасываем время начала рывка
-                self.is_dashing = False
-
-                # Сбрасываем кадры анимации для рывка
-                if self.direction == "right":
-                    self.set_animation("dash_right")
-                else:
-                    self.set_animation("dash_left")
-
-        # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
-        if self.is_dashing:
-            if self.direction == "right":
-                self.current_animation = self.animations["dash_right"]
-            else:
-                self.current_animation = self.animations["dash_left"]
-
-        elif (not self.is_ground and self.is_moving) or not self.is_ground:
-            if self.direction == "right":
-                self.current_animation = self.animations["jump_right"]
-            else:
-                self.current_animation = self.animations["jump_left"]
-        elif not self.is_moving:
-            if self.direction == "right":
-                self.current_animation = self.animations["idle_right"]
-            else:
-                self.current_animation = self.animations["idle_left"]
-
-        # Проверяем на столкновения со стенками
-        self.wall_collision()
-
-        # Проверяем на столкновение с die блоками
-        self.die_block_collision()
-
-        self.is_moving = False
-
-        # Обновляем текущую анимацию
-        self.current_animation.update()
-        self.image = self.current_animation.get_frame()
-
-        # Обновляем маску и хит-боксы
-        self.mask = pygame.mask.from_surface(self.image)
-        self.left_indent = min(self.mask.outline(), key=lambda x: x[0])[0]
-        self.right_indent = self.rect.width - max(self.mask.outline(), key=lambda x: x[0])[0] - 1
-        self.top_indent = min(self.mask.outline(), key=lambda x: x[1])[1]
+    def __bool__(self):
+        return bool(self.last_activation and self.start_time and self.duration)
