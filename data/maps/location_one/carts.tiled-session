@@ -17,11 +17,11 @@
             "scaleInEditor": 1
         },
         "loco1.tmx": {
-            "scale": 0.25,
-            "selectedLayer": 0,
+            "scale": 1,
+            "selectedLayer": 4,
             "viewCenter": {
-                "x": 780,
-                "y": 1132
+                "x": 530.5,
+                "y": 1098
             }
         },
         "tiles3.tsx": {

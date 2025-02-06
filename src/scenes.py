@@ -15,12 +15,21 @@ def game():
     initialization()
 
     # Создаём объект карты
-    map = Map(screen, "loco1")
+    dream_map = Map(screen, "loco1")
     player_pos = (
-    int(map.get_player_start_position()[0]), int(map.get_player_start_position()[1]))  # Получаем позицию игрока с карты
+        int(dream_map.get_player_start_position()[0]),
+        int(dream_map.get_player_start_position()[1]))  # Получаем позицию игрока с карты
 
-    groups = map.get_groups()  # Получаем все группы спрайтов с нашей карты
-    top_layer = groups[1]  # Передаём игроку 1 аргумент, т.к. метод get_groups возращает группу platforms второй
+    umiko_pos = (
+        int(dream_map.get_umiko_position()[0]),
+        int(dream_map.get_umiko_position()[1]))
+
+    groups = dream_map.get_groups()  # Получаем все группы спрайтов с нашей карты
+    # ЛОКАЛЬНЫЕ (для game) группы
+    background_layer = groups[0]  # Бэкграунд
+    platforms_group = groups[1]  # Группа платформ
+    deadly_layer = groups[2]  # Смертельные блоки
+    player_group = pygame.sprite.Group()  # Группа игрока
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pygame.Surface(screen.get_size())
@@ -34,8 +43,8 @@ def game():
     e_image = load_image('images/e.png', 'MENU')  # картинка Е
 
     dialogs = [Dialog('Привет, ЭТО диАЛОГи!',
-                      int(map.get_player_start_position()[0]),
-                      int(map.get_player_start_position()[1]) + 100,
+                      umiko_pos[0],
+                      umiko_pos[1],
                       100 * FACTOR_X,
                       'Хм, ЭтО КрУтО!', 'ОКЕ!')]
     # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
@@ -43,17 +52,8 @@ def game():
     pause = Pause()
     end_game = EndGame(1400 * FACTOR_X, 200 * FACTOR_Y)
 
-    # Заполняем группы
-    Background(load_image("images/first_background.jpg"), 0, 0, bottom_layer)
-    mid_layer = groups[0]
-    dop_layer = groups[2]  # die блоки
-
     # Создаём игрока
-    player = Player(player_group, player_pos, top_layer, dop_layer)
-
-    # Создаём корабли
-    # for i in range(10):
-    #     Ship(random.choice([-1, 1]), int(map.width) * 16, int(map.height) * 16, ships_layer)
+    player = Player(player_group, player_pos, platforms_group, deadly_layer)
 
     jump_pressed_last_frame = False  # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
 
@@ -105,8 +105,6 @@ def game():
             player.move("left")
         if jump_pressed_now and not jump_pressed_last_frame:
             player.jump()
-        if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE]:
-            player.jump()
         if keys[pygame.K_LCTRL]:  # Рывок
             player.dash(player.direction)
 
@@ -114,7 +112,7 @@ def game():
         jump_pressed_last_frame = jump_pressed_now
 
         # Очистка экрана
-        screen.fill((0, 0, 0))
+        screen.fill((125, 206, 235))
 
         # Обновляем игрока
         player.update()
@@ -124,8 +122,10 @@ def game():
 
         # Рисуем все группы спрайтов с учётом камеры
         camera.draw_group(bottom_layer, screen)
+        camera.draw_group(background_layer, screen)
         camera.draw_group(mid_layer, screen)
-        camera.draw_group(dop_layer, screen)
+        camera.draw_group(platforms_group, screen)
+        camera.draw_group(deadly_layer, screen)
         camera.draw_group(top_layer, screen)
         camera.draw_group(player_group, screen)
 
