@@ -52,6 +52,18 @@ class Map:
                 return obj.x, obj.y
         return None
 
+    def get_umiko_position(self):
+        for obj in self.tmx_data.objects:
+            if obj.type == 'umiko':
+                return obj.x, obj.y
+        return None
+
+    def get_win_flag_position(self):
+        for obj in self.tmx_data.objects:
+            if obj.type == 'win':
+                return obj.x, obj.y
+        return None
+
     def get_groups(self):
         return self.all_sprites, self.platforms_group, self.die_block_group, self.background_color_group
 
