@@ -1,3 +1,4 @@
+from math import ceil
 from random import choice, randint, uniform
 
 import pygame.font
@@ -309,3 +310,53 @@ class Event:
 
     def __bool__(self):
         return self.is_active
+
+
+class Health(pygame.sprite.Sprite):
+    def __init__(self, max_health, indent, size_factor, alpha=255):
+        super().__init__(all_sprites, top_layer)
+
+        self.current_health = max_health  # текущее здоровье
+        self.factor = size_factor  # меняет размер сердец на экране
+        self.indent = indent  # отступ между сердцами в пикселях
+        self.alpha = alpha  # прозрачность сердец
+
+        self.image = None
+        self.rect = None
+
+        self.update_image()
+
+    def update_image(self):
+        if self.current_health > 0:
+            size_width = ceil(self.current_health / 2) * 135 + self.indent * ceil(self.current_health / 2) - self.indent
+            self.image = pygame.Surface((size_width, 114))
+            self.rect = self.image.get_rect()
+            self.rect.x = 20
+            for heart in range(int(self.current_health) // 2):
+                self.image.blit(load_image('images/full hp.png'), (heart * 135 + heart * self.indent, 0))
+            if self.current_health % 2 == 1:
+                self.image.blit(load_image('images/half hp.png'), (self.rect.width - 135, 0))
+            self.image = pygame.transform.scale(self.image,
+                                                (size_width * self.factor * 0.9, 114 * self.factor))
+            self.image.set_colorkey((0, 0, 0))
+            self.image.set_alpha(self.alpha)
+            self.rect = self.image.get_rect()
+            pygame.image.save(self.image, 'test.png')
+
+    def synchron_pos(self, target, indent_x, indent_y):
+        self.rect.center = target.rect.center
+        self.rect.y += indent_y
+        self.rect.x += indent_x
+
+    def __bool__(self):
+        return self.current_health > 0
+
+    def __isub__(self, value):
+        self.current_health -= value
+        self.update_image()
+        return self
+
+    def __iadd__(self, value):
+        self.current_health += value
+        self.update_image()
+        return self

@@ -3,17 +3,25 @@ from random import randint
 import pygame
 
 from src.animation import Animation
-from src.objects import Event
-from src.utils import fps
+from src.objects import Event, Health
+from src.utils import fps, top_layer, all_sprites, FACTOR_Y, HEIGHT, WIDTH
 
 
 class Creature(pygame.sprite.Sprite):
-    def __init__(self, group, pos, platforms_group, deadly_layer):
+    def __init__(self, group, pos, platforms_group, deadly_layer, hp, hp_factor):
         super().__init__(group)
+        self.groups = group
         self.move_factor = 5  # фактор сдвига по пикселям
+
+        self.hp = hp
+        self.hp_factor = hp_factor
+
+        self.health = Health(hp, 15, hp_factor)
 
         self.platforms_group = platforms_group
         self.deadly_layer = deadly_layer
+
+        self.is_die = False
 
         # Прописываем физические параметры
         self.gravity = 0.6
@@ -36,16 +44,17 @@ class Creature(pygame.sprite.Sprite):
             self.current_animation.current_frame = 0
 
     def move(self, direction):
-        self.direction = direction
-        if direction == "right":
-            self.rect.x += self.move_factor * 60 / fps * 0.58  # * FACTOR_X
-            self.set_animation("move_right")
+        if not self.is_die:
+            self.direction = direction
+            if direction == "right":
+                self.rect.x += self.move_factor * 60 / fps * 0.58  # * FACTOR_X
+                self.set_animation("move_right")
 
-        elif direction == "left":
-            self.rect.x -= self.move_factor * 60 / fps * 0.58  # * FACTOR_X
-            self.set_animation("move_left")
+            elif direction == "left":
+                self.rect.x -= self.move_factor * 60 / fps * 0.58  # * FACTOR_X
+                self.set_animation("move_left")
 
-        self.is_moving = True
+            self.is_moving = True
 
     def update_hitboxes(self):
         self.mask = pygame.mask.from_surface(self.image)
@@ -75,18 +84,30 @@ class Creature(pygame.sprite.Sprite):
         for hit in hits:
             # Если маски пересекаются
             if pygame.sprite.collide_mask(self, hit):
-                self.rect.x = self.pos[0]
-                self.rect.y = self.pos[1]
+                self.get_damage(0.5)
+
+    def get_damage(self, n):
+        self.health -= n
+        if self.health.current_health - 1 < 0:
+            self.die()
+
+    def die(self):
+        if not self.is_die:
+            self.is_die = True
+            self.set_animation(f'die_{self.direction}')
+
+    def make_die(self):
+        if self.is_die:
+            if self.current_animation.current_frame == len(self.current_animation) - 1:
+                self.health.kill()
+                self.__init__(self.groups, self.pos, self.platforms_group, self.deadly_layer, self.hp, self.hp_factor)
 
     # Если существо стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
     def passive_animation(self):
         if not self.is_moving:
-            if self.direction == "right":
-                self.current_animation = self.animations["idle_right"]
-            else:
-                self.current_animation = self.animations["idle_left"]
+            self.current_animation = self.animations[f"idle_{self.direction}"]
 
-    def update(self):
+    def update(self, *args):
         # Применяем гравитацию
         self.fall_speed += self.gravity * 60 / fps
 
@@ -112,11 +133,14 @@ class Creature(pygame.sprite.Sprite):
         else:
             self.is_ground = False
 
+        self.make_die()
 
-# Класс игрока, перенесено из main
+        # Класс игрока, перенесено из main
+
+
 class Player(Creature):
-    def __init__(self, group, pos, platforms_group, deadly_layer):
-        super().__init__(group, pos, platforms_group, deadly_layer)
+    def __init__(self, group, pos, platforms_group, deadly_layer, hp=10, hp_factor=0.2):
+        super().__init__(group, pos, platforms_group, deadly_layer, hp, hp_factor)
 
         # Параметры для рывка
         self.can_dash = True
@@ -125,6 +149,7 @@ class Player(Creature):
         self.dash_speed = 150  # Смещение при рывке
 
         self.dash_event = Event(200, 500)
+        self.attack1_event = Event(400, 1000)
 
         # Группы анимаций принадлежащих игроку
         self.animations = {"move_right": Animation("walk", 'character', frame_rate=200),
@@ -138,7 +163,13 @@ class Player(Creature):
                                                   flip_horizontal=True),
                            "dash_right": Animation("dash", 'character', frame_rate=180),
                            "dash_left": Animation("dash", 'character', frame_rate=180,
-                                                  flip_horizontal=True)}
+                                                  flip_horizontal=True),
+                           "attack1_right": Animation("attack-1", 'character', frame_rate=100),
+                           "attack1_left": Animation("attack-1", 'character', frame_rate=100,
+                                                     flip_horizontal=True),
+                           "die_right": Animation('die', 'character', frame_rate=100),
+                           "die_left": Animation('die', 'character', frame_rate=100,
+                                                 flip_horizontal=True)}
         self.current_animation = self.animations["idle_right"]
 
         # Создаём спрайт игрока
@@ -162,6 +193,29 @@ class Player(Creature):
                     self.set_animation("dash_left")
 
                 self.dash_event.activation()
+
+    def attack1(self):
+        if self.attack1_event.time_check():
+            self.set_animation(f'attack1_{self.direction}')
+            self.attack1_event.activation()
+
+    def make_attack1(self, all_creatures):
+        current_time = pygame.time.get_ticks()
+        if self.attack1_event.start_time is not None and not self.is_die:
+            self.attack1_event.is_active = True
+            elapsed_time = current_time - self.attack1_event.start_time
+
+            if self.current_animation.current_frame == 2:
+                attack_radius = pygame.rect.Rect(0, 0, 50, 37)
+                attack_radius.center = self.rect.center
+                for sprite in all_creatures:
+                    if sprite != self:
+                        if sprite.rect.colliderect(attack_radius):
+                            sprite.get_damage(0.2)
+
+            if not elapsed_time < self.attack1_event.duration:
+                self.attack1_event.start_time = None  # Сбрасываем время начала атаки
+                self.attack1_event.is_active = False
 
     def jump(self):
         self.rect.y += 1
@@ -189,7 +243,7 @@ class Player(Creature):
             self.can_dash = True  # Разрешаем выполнение рывка снова
 
         # Рывок
-        if self.dash_event.start_time is not None:
+        if self.dash_event.start_time is not None and not self.is_die:
             self.dash_event.is_active = True
             elapsed_time = current_time - self.dash_event.start_time
 
@@ -203,8 +257,10 @@ class Player(Creature):
                 self.dash_event.start_time = None  # Сбрасываем время начала рывка
                 self.dash_event.is_active = False
 
-    def update(self):
+    def update(self, all_creatures):
         super().update()
+
+        self.make_attack1(all_creatures)
 
         # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
         self.passive_animation()
@@ -223,20 +279,22 @@ class Player(Creature):
         self.current_animation.update()
         self.image = self.current_animation.get_frame()
 
+        self.health.synchron_pos(self, WIDTH * 0.49 - self.health.rect.width // 2, - HEIGHT * 0.45)
+
         # Обновляем маску и хит-боксы
-        self.update_hitboxes()
+        if self.current_animation not in (self.animations[f"attack1_{self.direction}"],
+                                          self.animations[f"attack1_{self.direction}"]):
+            self.update_hitboxes()
 
     def passive_animation(self):
-        if self.dash_event.is_active:
-            if self.direction == "right":
-                self.current_animation = self.animations["dash_right"]
-            else:
-                self.current_animation = self.animations["dash_left"]
+        if self.is_die:
+            self.current_animation = self.animations[f"die_{self.direction}"]
+        elif self.dash_event.is_active:
+            self.current_animation = self.animations[f"dash_{self.direction}"]
+        elif self.attack1_event.is_active:
+            self.current_animation = self.animations[f"attack1_{self.direction}"]
         elif (not self.is_ground and self.is_moving) or not self.is_ground:
-            if self.direction == "right":
-                self.current_animation = self.animations["jump_right"]
-            else:
-                self.current_animation = self.animations["jump_left"]
+            self.current_animation = self.animations[f"jump_{self.direction}"]
         else:
             Creature.passive_animation(self)
 
@@ -265,11 +323,11 @@ class Player(Creature):
 
 
 class Enemy(Creature):
-    def __init__(self, group, pos, platforms_group, deadly_layer):
-        super().__init__(group, pos, platforms_group, deadly_layer)
+    def __init__(self, group, pos, platforms_group, deadly_layer, hp=10, hp_factor=0.1):
+        super().__init__(group, pos, platforms_group, deadly_layer, hp, hp_factor)
 
         self.trigger_radius = pygame.rect.Rect(0, 0, 400, 400)
-        self.fight_radius = pygame.rect.Rect(0, 0, 100, 100)
+        self.fight_radius = pygame.rect.Rect(0, 0, 150, 150)
         self.vector = 0
         self.move_factor = 3
 
@@ -285,7 +343,10 @@ class Enemy(Creature):
                                                   flip_horizontal=True),
                            "attack_right": Animation('attack', 'sceleton', frame_rate=100),
                            "attack_left": Animation('attack', 'sceleton', frame_rate=100,
-                                                    flip_horizontal=True)}
+                                                    flip_horizontal=True),
+                           "die_right": Animation('die', 'sceleton', frame_rate=100),
+                           "die_left": Animation('die', 'sceleton', frame_rate=100,
+                                                 flip_horizontal=True)}
         self.current_animation = self.animations["idle_right"]
 
         # Создаём спрайт игрока
@@ -300,10 +361,17 @@ class Enemy(Creature):
         self.trigger_radius.center = self.rect.center
         self.fight_radius.center = self.rect.center
         if target.rect.colliderect(self.trigger_radius):
-            diff = target.rect.center[0] - self.trigger_radius.center[0]
-            if abs(diff) > 1:
-                self.vector = diff / abs(diff)
+            diff_right = target.rect.x - self.trigger_radius.center[0]
+            diff_left = target.rect.x + target.rect.width - self.trigger_radius.center[0]
+            if abs(diff_left) - abs(diff_right) > 50:
+                self.direction = 'left'
+                self.vector = diff_left / abs(diff_left)
                 return
+            elif abs(diff_right) - abs(diff_left) > 50:
+                self.direction = 'right'
+                self.vector = diff_right / abs(diff_right)
+                return
+
         if target.rect.colliderect(self.fight_radius):
             self.attack()
         self.vector = 0
@@ -317,17 +385,24 @@ class Enemy(Creature):
 
     def make_attack(self):
         current_time = pygame.time.get_ticks()
-        if self.attack_event.start_time is not None:
+        if self.attack_event.start_time is not None and not self.is_die:
 
             self.attack_event.is_active = True
             elapsed_time = current_time - self.attack_event.start_time
 
             if not elapsed_time < self.attack_event.duration:
-                print('here')
                 self.attack_event.start_time = None  # Сбрасываем время начала атаки
                 self.attack_event.is_active = False
 
-    def update(self):
+    def passive_animation(self):
+        if self.is_die:
+            self.current_animation = self.animations[f"die_{self.direction}"]
+        elif self.attack_event.is_active:
+            self.current_animation = self.animations[f"attack_{self.direction}"]
+        else:
+            super().passive_animation()
+
+    def update(self, *args):
         if self.vector != 0:
             self.move({1: 'right', -1: 'left'}[self.vector])
 
@@ -350,11 +425,7 @@ class Enemy(Creature):
         self.current_animation.update()
         self.image = self.current_animation.get_frame()
 
+        self.health.synchron_pos(self, 0, -35)
+
         # Обновляем маску и хит-боксы
         self.update_hitboxes()
-
-    def passive_animation(self):
-        if self.attack_event.is_active:
-            self.current_animation = self.animations[f"attack_{self.direction}"]
-        else:
-            super().passive_animation()

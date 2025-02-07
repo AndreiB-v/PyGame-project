@@ -20,3 +20,6 @@ class Animation:
 
     def get_frame(self):
         return self.frames[self.current_frame]
+
+    def __len__(self):
+        return len(self.frames)

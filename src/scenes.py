@@ -102,6 +102,8 @@ def game():
             player.jump()
         if keys[pygame.K_LCTRL]:  # Рывок
             player.dash(player.direction)
+        if keys[pygame.K_x]:
+            player.attack1()
 
         # Обновляем переменную для следующего кадра:
         jump_pressed_last_frame = jump_pressed_now
@@ -110,7 +112,9 @@ def game():
         screen.fill((50, 131, 218))
 
         # Обновление всех существ
-        creatures_group.update()
+        # creatures_group.update(creatures_group)
+        for sprite in creatures_group:
+            sprite.update(creatures_group)
         enemy.check_trigger_radius(player)
 
         # Обновление камеры
