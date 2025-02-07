@@ -11,45 +11,60 @@ from camera import Camera
 
 # Основной цикл игры
 def game():
-   dream_card()
-
-# Инициилизация дрим карты
-def dream_card():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
-    # Создаём объект карты
-    dream_map = Map(screen, "loco1")
-    player_pos = (
-        int(dream_map.get_player_start_position()[0]),
-        int(dream_map.get_player_start_position()[1]))  # Получаем позицию игрока с карты
+    dream_map = dialogs = None
+    back_photo = cloud_layer = background_layer = platforms_group = deadly_layer = player = end_game = None
 
-    umiko_pos = (
-        int(dream_map.get_umiko_position()[0]),
-        int(dream_map.get_umiko_position()[1]))
+    # Карта: сон
+    def dream():
+        nonlocal dream_map, dialogs, back_photo, cloud_layer, background_layer, \
+            platforms_group, deadly_layer, player, end_game
+        dream_map = Map(screen, "loco1")
+        player_pos = (
+            int(dream_map.get_player_start_position()[0]),
+            int(dream_map.get_player_start_position()[1]))  # Получаем позицию игрока с карты
+        umiko_pos = (
+            int(dream_map.get_umiko_position()[0]),
+            int(dream_map.get_umiko_position()[1]))
+        win_flag_pos = (
+            int(dream_map.get_win_flag_position()[0]),
+            int(dream_map.get_win_flag_position()[1]))
 
-    win_flag_pos = (
-        int(dream_map.get_win_flag_position()[0]),
-        int(dream_map.get_win_flag_position()[1]))
+        groups = dream_map.get_groups()  # Получаем все группы спрайтов с нашей карты
 
-    groups = dream_map.get_groups()  # Получаем все группы спрайтов с нашей карты
+        # Получаем все файлы облаков
+        files = get_images("../data/maps/location_one/clouds")
+        clouds = []
+        for i in files:
+            clouds.append(load_image(f"maps/location_one/clouds/{i}"))
 
-    # Получаем все файлы облаков
-    files = get_images("../data/maps/location_one/clouds")
-    clouds = []
-    for i in files:
-        clouds.append(load_image(f"maps/location_one/clouds/{i}"))
+        # ЛОКАЛЬНЫЕ (для game) группы
+        back_photo = pygame.sprite.Group()  # Статичный бэк
+        cloud_layer = pygame.sprite.Group()  # Слой для облаков
+        background_layer = groups[0]  # Бэкграунд
+        platforms_group = groups[1]  # Группа платформ
+        deadly_layer = groups[2]  # Смертельные блоки
 
-    # ЛОКАЛЬНЫЕ (для game) группы
-    back_photo = pygame.sprite.Group() # Статичный бэк
-    cloud_layer = pygame.sprite.Group() # Слой для облаков
-    background_layer = groups[0]  # Бэкграунд
-    platforms_group = groups[1]  # Группа платформ
-    deadly_layer = groups[2]  # Смертельные блоки
-    player_group = pygame.sprite.Group()  # Группа игрока
+        # background
+        Background(load_image("images/backgroundone.png"), 0, 0, back_photo)
 
-    # background
-    Background(load_image("images/backgroundone.png"), 0, 0, back_photo)
+        # Создаём игрока
+        player = Player(player_group, player_pos, platforms_group, deadly_layer)
+        end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
+
+        # Создаём облака
+        for _ in range(10):
+            BgCloud(cloud_layer, clouds, dream_map.width, dream_map.height)
+
+        dialogs = [Dialog('Привет, ЭТО диАЛОГи!',
+                          umiko_pos[0],
+                          umiko_pos[1],
+                          100 * FACTOR_X,
+                          'Хм, ЭтО КрУтО!', 'ОКЕ!')]
+
+    dream()
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pygame.Surface(screen.get_size())
@@ -61,29 +76,14 @@ def dream_card():
     activ_dial_x = activ_dial_y = 0  # положение анимации (Е)
     push = False  # зажата ли (Е)
     e_image = load_image('images/e.png', 'MENU')  # картинка Е
-
-    dialogs = [Dialog('Привет, ЭТО диАЛОГи!',
-                      umiko_pos[0],
-                      umiko_pos[1],
-                      100 * FACTOR_X,
-                      'Хм, ЭтО КрУтО!', 'ОКЕ!')]
     # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
 
     pause = Pause()
-
-    end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
-
-    # Создаём игрока
-    player = Player(player_group, player_pos, platforms_group, deadly_layer)
 
     jump_pressed_last_frame = False  # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
 
     # Создаём камеру
     camera = Camera()
-
-    # Создаём облака
-    for _ in range(10):
-        BgCloud(cloud_layer, clouds, dream_map.width, dream_map.height)
 
     while True:
         if pygame.sprite.collide_mask(player, end_game):
@@ -201,6 +201,7 @@ def dream_card():
 
         pygame.display.flip()
         clock.tick(fps)
+
 
 # Экран 'приветствия', главная менюшка
 def start_screen():
