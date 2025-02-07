@@ -7,6 +7,7 @@ from pygame.rect import Rect
 from objects import *
 from map import Map
 from camera import Camera
+from src.creatures import Player, Enemy
 
 
 # Основной цикл игры
@@ -14,13 +15,13 @@ def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
-    dream_map = dialogs = None
+    dream_map = dialogs = creatures_group = enemy = None
     back_photo = cloud_layer = background_layer = platforms_group = deadly_layer = player = end_game = None
 
     # Карта: сон
     def dream():
         nonlocal dream_map, dialogs, back_photo, cloud_layer, background_layer, \
-            platforms_group, deadly_layer, player, end_game
+            platforms_group, deadly_layer, player, end_game, creatures_group, enemy
         dream_map = Map(screen, "loco1")
         player_pos = (
             int(dream_map.get_player_start_position()[0]),
@@ -46,12 +47,14 @@ def game():
         background_layer = groups[0]  # Бэкграунд
         platforms_group = groups[1]  # Группа платформ
         deadly_layer = groups[2]  # Смертельные блоки
+        creatures_group = pygame.sprite.Group()  # Группа игрока
 
         # background
-        Background(load_image("images/backgroundone.png"), 0, 0, back_photo)
+        Background(load_image("images/background.png"), 0, 0, back_photo)
 
         # Создаём игрока
-        player = Player(player_group, player_pos, platforms_group, deadly_layer)
+        player = Player(creatures_group, player_pos, platforms_group, deadly_layer)
+        enemy = Enemy(creatures_group, player_pos, platforms_group, deadly_layer)
         end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
 
         # Создаём облака

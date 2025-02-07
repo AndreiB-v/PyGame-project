@@ -77,9 +77,10 @@ def load_image(name, mode=None, factor_x=FACTOR_X, factor_y=FACTOR_Y):
 # Получение всех картинок
 def get_images(dir):
     directory = dir
-    files = os.listdir(directory) # Имена всех файлов
+    files = os.listdir(directory)  # Имена всех файлов
 
     return files
+
 
 # Функция для получения всех кадров анмиации
 def load_animation(folder_path, enemy):

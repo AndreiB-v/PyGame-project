@@ -380,7 +380,7 @@ class Health(pygame.sprite.Sprite):
         self.rect.x += indent_x
 
     def __bool__(self):
-        return self.current_health > 0
+        return bool(int(self.current_health) // 1)
 
     def __isub__(self, value):
         self.current_health -= value

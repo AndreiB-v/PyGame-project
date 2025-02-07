@@ -86,9 +86,13 @@ class Creature(pygame.sprite.Sprite):
             if pygame.sprite.collide_mask(self, hit):
                 self.get_damage(0.5)
 
-    def get_damage(self, n):
+    def get_damage(self, n, direction=None):
         self.health -= n
-        if self.health.current_health - 1 < 0:
+        if direction == 'right':
+            self.rect.x += 10
+        elif direction == 'left':
+            self.rect.x -= 10
+        if not self.health:
             self.die()
 
     def die(self):
@@ -98,7 +102,7 @@ class Creature(pygame.sprite.Sprite):
 
     def make_die(self):
         if self.is_die:
-            if self.current_animation.current_frame == len(self.current_animation) - 1:
+            if self.current_animation.current_frame == len(self.current_animation) - 1 or not self.is_ground:
                 self.health.kill()
                 self.__init__(self.groups, self.pos, self.platforms_group, self.deadly_layer, self.hp, self.hp_factor)
 
@@ -211,7 +215,7 @@ class Player(Creature):
                 for sprite in all_creatures:
                     if sprite != self:
                         if sprite.rect.colliderect(attack_radius):
-                            sprite.get_damage(0.2)
+                            sprite.get_damage(0.5, self.direction)
 
             if not elapsed_time < self.attack1_event.duration:
                 self.attack1_event.start_time = None  # Сбрасываем время начала атаки
@@ -377,18 +381,26 @@ class Enemy(Creature):
         self.vector = 0
 
     def attack(self):
-        if randint(0, 100) == 1:
+        if randint(0, 50) == 1:
             if self.attack_event.time_check():
                 self.set_animation(f"attack_{self.direction}")
                 self.current_attack = 'sword strike'
                 self.attack_event.activation()
 
-    def make_attack(self):
+    def make_attack(self, all_creatures):
         current_time = pygame.time.get_ticks()
         if self.attack_event.start_time is not None and not self.is_die:
 
             self.attack_event.is_active = True
             elapsed_time = current_time - self.attack_event.start_time
+
+            if self.current_animation.current_frame == 7:
+                attack_radius = pygame.rect.Rect(0, 0, 50, 37)
+                attack_radius.center = self.rect.center
+                for sprite in all_creatures:
+                    if sprite != self:
+                        if sprite.rect.colliderect(attack_radius):
+                            sprite.get_damage(0.5, self.direction)
 
             if not elapsed_time < self.attack_event.duration:
                 self.attack_event.start_time = None  # Сбрасываем время начала атаки
@@ -402,7 +414,7 @@ class Enemy(Creature):
         else:
             super().passive_animation()
 
-    def update(self, *args):
+    def update(self, all_creatures):
         if self.vector != 0:
             self.move({1: 'right', -1: 'left'}[self.vector])
 
@@ -411,7 +423,7 @@ class Enemy(Creature):
         # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
         self.passive_animation()
 
-        self.make_attack()
+        self.make_attack(all_creatures)
 
         # Проверяем на столкновения со стенками
         self.wall_collision()
