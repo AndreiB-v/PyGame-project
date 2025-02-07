@@ -4,7 +4,7 @@ import pygame
 
 from src.animation import Animation
 from src.objects import Event, Health
-from src.utils import fps, top_layer, all_sprites, FACTOR_Y, HEIGHT, WIDTH
+from src.utils import fps, HEIGHT, WIDTH
 
 
 class Creature(pygame.sprite.Sprite):
@@ -89,21 +89,21 @@ class Creature(pygame.sprite.Sprite):
     def get_damage(self, n, direction=None):
         self.health -= n
         if direction == 'right':
-            self.rect.x += 10
+            self.rect.x += 20
         elif direction == 'left':
-            self.rect.x -= 10
+            self.rect.x -= 20
         if not self.health:
             self.die()
 
     def die(self):
         if not self.is_die:
             self.is_die = True
+            self.health.kill()
             self.set_animation(f'die_{self.direction}')
 
     def make_die(self):
         if self.is_die:
             if self.current_animation.current_frame == len(self.current_animation) - 1 or not self.is_ground:
-                self.health.kill()
                 self.__init__(self.groups, self.pos, self.platforms_group, self.deadly_layer, self.hp, self.hp_factor)
 
     # Если существо стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
@@ -137,10 +137,6 @@ class Creature(pygame.sprite.Sprite):
         else:
             self.is_ground = False
 
-        self.make_die()
-
-        # Класс игрока, перенесено из main
-
 
 class Player(Creature):
     def __init__(self, group, pos, platforms_group, deadly_layer, hp=10, hp_factor=0.2):
@@ -151,6 +147,8 @@ class Player(Creature):
         self.start_pos = None
         self.end_pos = None
         self.dash_speed = 150  # Смещение при рывке
+
+        self.damage_count = 0
 
         self.dash_event = Event(200, 500)
         self.attack1_event = Event(400, 1000)
@@ -209,17 +207,19 @@ class Player(Creature):
             self.attack1_event.is_active = True
             elapsed_time = current_time - self.attack1_event.start_time
 
-            if self.current_animation.current_frame == 2:
+            if self.current_animation.current_frame == 2 and self.damage_count == 0:
+                self.damage_count += 1
                 attack_radius = pygame.rect.Rect(0, 0, 50, 37)
                 attack_radius.center = self.rect.center
                 for sprite in all_creatures:
                     if sprite != self:
                         if sprite.rect.colliderect(attack_radius):
-                            sprite.get_damage(0.5, self.direction)
+                            sprite.get_damage(1, self.direction)
 
             if not elapsed_time < self.attack1_event.duration:
                 self.attack1_event.start_time = None  # Сбрасываем время начала атаки
                 self.attack1_event.is_active = False
+                self.damage_count = 0
 
     def jump(self):
         self.rect.y += 1
@@ -266,9 +266,6 @@ class Player(Creature):
 
         self.make_attack1(all_creatures)
 
-        # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
-        self.passive_animation()
-
         self.make_dash()
 
         # Проверяем на столкновения со стенками
@@ -279,11 +276,15 @@ class Player(Creature):
 
         self.is_moving = False
 
+        self.make_die()
+        self.health.synchron_pos(self, WIDTH * 0.49 - self.health.rect.width // 2, - HEIGHT * 0.45)
+
+        # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
+        self.passive_animation()
+
         # Обновляем текущую анимацию
         self.current_animation.update()
         self.image = self.current_animation.get_frame()
-
-        self.health.synchron_pos(self, WIDTH * 0.49 - self.health.rect.width // 2, - HEIGHT * 0.45)
 
         # Обновляем маску и хит-боксы
         if self.current_animation not in (self.animations[f"attack1_{self.direction}"],
@@ -300,7 +301,7 @@ class Player(Creature):
         elif (not self.is_ground and self.is_moving) or not self.is_ground:
             self.current_animation = self.animations[f"jump_{self.direction}"]
         else:
-            Creature.passive_animation(self)
+            super().passive_animation()
 
     def wall_collision(self):
         # получаем пересекаемые объекты и перебираем каждый отдельно
@@ -335,6 +336,8 @@ class Enemy(Creature):
         self.vector = 0
         self.move_factor = 3
 
+        self.damage_count = 0
+
         self.attack_event = Event(1000, 1000)
         self.current_attack = None
 
@@ -348,8 +351,8 @@ class Enemy(Creature):
                            "attack_right": Animation('attack', 'sceleton', frame_rate=100),
                            "attack_left": Animation('attack', 'sceleton', frame_rate=100,
                                                     flip_horizontal=True),
-                           "die_right": Animation('die', 'sceleton', frame_rate=100),
-                           "die_left": Animation('die', 'sceleton', frame_rate=100,
+                           "die_right": Animation('die', 'sceleton', frame_rate=200),
+                           "die_left": Animation('die', 'sceleton', frame_rate=200,
                                                  flip_horizontal=True)}
         self.current_animation = self.animations["idle_right"]
 
@@ -368,11 +371,9 @@ class Enemy(Creature):
             diff_right = target.rect.x - self.trigger_radius.center[0]
             diff_left = target.rect.x + target.rect.width - self.trigger_radius.center[0]
             if abs(diff_left) - abs(diff_right) > 50:
-                self.direction = 'left'
                 self.vector = diff_left / abs(diff_left)
                 return
             elif abs(diff_right) - abs(diff_left) > 50:
-                self.direction = 'right'
                 self.vector = diff_right / abs(diff_right)
                 return
 
@@ -394,17 +395,19 @@ class Enemy(Creature):
             self.attack_event.is_active = True
             elapsed_time = current_time - self.attack_event.start_time
 
-            if self.current_animation.current_frame == 7:
+            if self.current_animation.current_frame == 7 and self.damage_count == 0:
+                self.damage_count += 1
                 attack_radius = pygame.rect.Rect(0, 0, 50, 37)
                 attack_radius.center = self.rect.center
                 for sprite in all_creatures:
                     if sprite != self:
                         if sprite.rect.colliderect(attack_radius):
-                            sprite.get_damage(0.5, self.direction)
+                            sprite.get_damage(1, self.direction)
 
             if not elapsed_time < self.attack_event.duration:
                 self.attack_event.start_time = None  # Сбрасываем время начала атаки
                 self.attack_event.is_active = False
+                self.damage_count = 0
 
     def passive_animation(self):
         if self.is_die:
@@ -420,9 +423,6 @@ class Enemy(Creature):
 
         super().update()
 
-        # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
-        self.passive_animation()
-
         self.make_attack(all_creatures)
 
         # Проверяем на столкновения со стенками
@@ -433,11 +433,15 @@ class Enemy(Creature):
 
         self.is_moving = False
 
+        self.make_die()
+        self.health.synchron_pos(self, 0, -35)
+
+        # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
+        self.passive_animation()
+
         # Обновляем текущую анимацию
         self.current_animation.update()
         self.image = self.current_animation.get_frame()
-
-        self.health.synchron_pos(self, 0, -35)
 
         # Обновляем маску и хит-боксы
         self.update_hitboxes()

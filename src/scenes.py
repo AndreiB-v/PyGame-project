@@ -15,13 +15,13 @@ def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
-    dream_map = dialogs = creatures_group = enemy = None
+    dream_map = dialogs = creatures_group = enemy = enemy2 = None
     back_photo = cloud_layer = background_layer = platforms_group = deadly_layer = player = end_game = None
 
     # Карта: сон
     def dream():
         nonlocal dream_map, dialogs, back_photo, cloud_layer, background_layer, \
-            platforms_group, deadly_layer, player, end_game, creatures_group, enemy
+            platforms_group, deadly_layer, player, end_game, creatures_group, enemy, enemy2
         dream_map = Map(screen, "loco1")
         player_pos = (
             int(dream_map.get_player_start_position()[0]),
@@ -54,18 +54,19 @@ def game():
 
         # Создаём игрока
         player = Player(creatures_group, player_pos, platforms_group, deadly_layer)
-        enemy = Enemy(creatures_group, player_pos, platforms_group, deadly_layer)
+        enemy = Enemy(creatures_group, (1230, 1956), platforms_group, deadly_layer)
+        enemy2 = Enemy(creatures_group, (557, 1138), platforms_group, deadly_layer)
         end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
 
         # Создаём облака
         for _ in range(10):
             BgCloud(cloud_layer, clouds, dream_map.width, dream_map.height)
 
-        dialogs = [Dialog('Привет, ЭТО диАЛОГи!',
+        dialogs = [Dialog('кРСАВА, убил монстра',
                           umiko_pos[0],
                           umiko_pos[1],
                           100 * FACTOR_X,
-                          'Хм, ЭтО КрУтО!', 'ОКЕ!')]
+                          'спасибо!', 'да, я такой!')]
 
     dream()
 
@@ -149,6 +150,7 @@ def game():
         for sprite in creatures_group:
             sprite.update(creatures_group)
         enemy.check_trigger_radius(player)
+        enemy2.check_trigger_radius(player)
 
         # Обновление камеры
         camera.update(player)

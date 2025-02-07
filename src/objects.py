@@ -145,7 +145,7 @@ class EndGame(Popup, pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self, all_sprites, mid_layer)
         Popup.__init__(self, 100, (255, 255, 255))
         self.image = load_image('images/flag.png')
-        self.image = pygame.transform.scale(self.image, (100 * FACTOR_X, 100 * FACTOR_Y))
+        self.image = pygame.transform.scale(self.image, (100 * 0.58, 100 * 0.58))  # (100 * FACTOR_X, 100 * FACTOR_Y)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -157,8 +157,8 @@ class EndGame(Popup, pygame.sprite.Sprite):
     def draw_popup(self, screen):
         super().draw_popup(screen)
 
-        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT - HEIGHT * 0.75)))
-        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT - HEIGHT * 0.75)))
+        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT)))
+        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT)))
         self.popup_layer.draw(screen)
 
         font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf',
