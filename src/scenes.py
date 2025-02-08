@@ -54,7 +54,7 @@ def game():
 
         # Создаём игрока
         player = Player(creatures_group, player_pos, platforms_group, deadly_layer)
-        enemy = Enemy(creatures_group, (1230, 1956), platforms_group, deadly_layer)
+        enemy = Enemy(creatures_group, player_pos, platforms_group, deadly_layer)
         enemy2 = Enemy(creatures_group, (557, 1138), platforms_group, deadly_layer)
         end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
 

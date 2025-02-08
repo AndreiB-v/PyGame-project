@@ -1,5 +1,4 @@
 # Файл для вспомогательных функций
-import json
 import os
 import sys
 from math import sin

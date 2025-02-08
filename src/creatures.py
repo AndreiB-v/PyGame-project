@@ -89,9 +89,9 @@ class Creature(pygame.sprite.Sprite):
     def get_damage(self, n, direction=None):
         self.health -= n
         if direction == 'right':
-            self.rect.x += 20
+            self.rect.x += 10
         elif direction == 'left':
-            self.rect.x -= 20
+            self.rect.x -= 10
         if not self.health:
             self.die()
 
@@ -104,7 +104,8 @@ class Creature(pygame.sprite.Sprite):
     def make_die(self):
         if self.is_die:
             if self.current_animation.current_frame == len(self.current_animation) - 1 or not self.is_ground:
-                self.__init__(self.groups, self.pos, self.platforms_group, self.deadly_layer, self.hp, self.hp_factor)
+                self.kill()
+                # self.__init__(self.groups, self.pos, self.platforms_group, self.deadly_layer, self.hp, self.hp_factor)
 
     # Если существо стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
     def passive_animation(self):
@@ -205,16 +206,24 @@ class Player(Creature):
         current_time = pygame.time.get_ticks()
         if self.attack1_event.start_time is not None and not self.is_die:
             self.attack1_event.is_active = True
+            self.current_animation = self.animations[f'attack1_{self.direction}']
             elapsed_time = current_time - self.attack1_event.start_time
 
-            if self.current_animation.current_frame == 2 and self.damage_count == 0:
+            if self.current_animation.current_frame == 2 and self.damage_count < 1:
                 self.damage_count += 1
                 attack_radius = pygame.rect.Rect(0, 0, 50, 37)
                 attack_radius.center = self.rect.center
+
                 for sprite in all_creatures:
                     if sprite != self:
                         if sprite.rect.colliderect(attack_radius):
+                            sound = pygame.mixer.Sound('../data/sounds/удар-2.wav')
+                            sound.play()
                             sprite.get_damage(1, self.direction)
+                            break
+                else:
+                    sound = pygame.mixer.Sound('../data/sounds/удар-1.wav')
+                    sound.play()
 
             if not elapsed_time < self.attack1_event.duration:
                 self.attack1_event.start_time = None  # Сбрасываем время начала атаки
@@ -264,9 +273,8 @@ class Player(Creature):
     def update(self, all_creatures):
         super().update()
 
-        self.make_attack1(all_creatures)
-
         self.make_dash()
+        self.make_attack1(all_creatures)
 
         # Проверяем на столкновения со стенками
         self.wall_collision()
@@ -274,13 +282,13 @@ class Player(Creature):
         # Проверяем на столкновение с die блоками
         self.die_block_collision()
 
-        self.is_moving = False
-
         self.make_die()
         self.health.synchron_pos(self, WIDTH * 0.49 - self.health.rect.width // 2, - HEIGHT * 0.45)
 
         # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
         self.passive_animation()
+
+        self.is_moving = False
 
         # Обновляем текущую анимацию
         self.current_animation.update()
@@ -351,8 +359,8 @@ class Enemy(Creature):
                            "attack_right": Animation('attack', 'sceleton', frame_rate=100),
                            "attack_left": Animation('attack', 'sceleton', frame_rate=100,
                                                     flip_horizontal=True),
-                           "die_right": Animation('die', 'sceleton', frame_rate=200),
-                           "die_left": Animation('die', 'sceleton', frame_rate=200,
+                           "die_right": Animation('die', 'sceleton', frame_rate=400),
+                           "die_left": Animation('die', 'sceleton', frame_rate=400,
                                                  flip_horizontal=True)}
         self.current_animation = self.animations["idle_right"]
 
@@ -391,18 +399,23 @@ class Enemy(Creature):
     def make_attack(self, all_creatures):
         current_time = pygame.time.get_ticks()
         if self.attack_event.start_time is not None and not self.is_die:
-
             self.attack_event.is_active = True
+            self.current_animation = self.animations[f'attack_{self.direction}']
             elapsed_time = current_time - self.attack_event.start_time
 
-            if self.current_animation.current_frame == 7 and self.damage_count == 0:
+            if self.current_animation.current_frame == 6 and self.damage_count == 0:
                 self.damage_count += 1
                 attack_radius = pygame.rect.Rect(0, 0, 50, 37)
                 attack_radius.center = self.rect.center
                 for sprite in all_creatures:
                     if sprite != self:
                         if sprite.rect.colliderect(attack_radius):
-                            sprite.get_damage(1, self.direction)
+                            sprite.get_damage(2, self.direction)
+                            sound = pygame.mixer.Sound('../data/sounds/удар-2.wav')
+                            sound.play()
+                else:
+                    sound = pygame.mixer.Sound('../data/sounds/удар-1.wav')
+                    sound.play()
 
             if not elapsed_time < self.attack_event.duration:
                 self.attack_event.start_time = None  # Сбрасываем время начала атаки
@@ -416,6 +429,26 @@ class Enemy(Creature):
             self.current_animation = self.animations[f"attack_{self.direction}"]
         else:
             super().passive_animation()
+
+    def move(self, direction):
+        if not self.is_die:
+            hits = pygame.sprite.spritecollide(self, self.deadly_layer, False)
+            if hits:
+                self.rect.x += {'right': -1, 'left': 1}[direction]
+                for hit in hits:
+                    if pygame.sprite.collide_mask(self, hit):
+                        left_side = abs(hit.rect.x + hit.rect.width - self.rect.x)
+                        right_side = abs(self.rect.x + self.rect.width - hit.rect.x)
+                        if left_side < right_side:
+                            self.rect.x = hit.rect.x + hit.rect.width - self.left_indent
+                        elif left_side > right_side:
+                            self.rect.x = hit.rect.x - self.rect.width + self.right_indent
+            else:
+                self.rect.x += {'right': self.move_factor * 60 / fps * 0.58,
+                                'left': - self.move_factor * 60 / fps * 0.58}[direction]
+                self.set_animation(f"move_{direction}")
+                self.direction = direction
+                self.is_moving = True
 
     def update(self, all_creatures):
         if self.vector != 0:
@@ -431,13 +464,13 @@ class Enemy(Creature):
         # Проверяем на столкновение с die блоками
         self.die_block_collision()
 
-        self.is_moving = False
-
         self.make_die()
         self.health.synchron_pos(self, 0, -35)
 
         # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
         self.passive_animation()
+
+        self.is_moving = False
 
         # Обновляем текущую анимацию
         self.current_animation.update()

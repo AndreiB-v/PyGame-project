@@ -372,7 +372,6 @@ class Health(pygame.sprite.Sprite):
             self.image.set_colorkey((0, 0, 0))
             self.image.set_alpha(self.alpha)
             self.rect = self.image.get_rect()
-            pygame.image.save(self.image, 'test.png')
 
     def synchron_pos(self, target, indent_x, indent_y):
         self.rect.center = target.rect.center
@@ -384,6 +383,8 @@ class Health(pygame.sprite.Sprite):
 
     def __isub__(self, value):
         self.current_health -= value
+        if self.current_health < 1:
+            self.current_health = 0
         self.update_image()
         return self
 
