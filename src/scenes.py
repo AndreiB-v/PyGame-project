@@ -15,6 +15,8 @@ def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
+    pygame.mixer.music.stop() # Останавливаем музыку при начале игры
+
     dream_map = dialogs = creatures_group = enemy = enemy2 = None
     back_photo = cloud_layer = background_layer = platforms_group = deadly_layer = player = end_game = None
 
@@ -228,6 +230,12 @@ def start_screen():
     settings_button = Button(33, 788, lambda: settings(start_screen),
                              load_image('buttons/Settings.png', 'MENU'),
                              (all_sprites, button_layer))
+
+    # Песня на заднем плане
+    pygame.mixer.music.load("../data/sounds/start_screen_background_music.mp3")
+    pygame.mixer.music.play(-1) # Проигрывание + зацикливание
+    pygame.mixer.music.set_volume(0.05) # Уменьшаем громкость в половину1
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
