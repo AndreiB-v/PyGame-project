@@ -112,8 +112,8 @@ def game():
         # Вин поз
         end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
 
-    # dream()
-    city()
+    dream()
+    # city()
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pygame.Surface(screen.get_size())
@@ -194,8 +194,9 @@ def game():
         # creatures_group.update(creatures_group)
         for sprite in creatures_group:
             sprite.update(creatures_group)
-        # enemy.check_trigger_radius(player) # Если на карте нет энемисов?
-        # enemy2.check_trigger_radius(player)
+        if len(creatures_group) > 1:
+            enemy.check_trigger_radius(player)
+            enemy2.check_trigger_radius(player)
 
         # Обновление камеры
         camera.update(player)
