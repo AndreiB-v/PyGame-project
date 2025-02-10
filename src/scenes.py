@@ -15,16 +15,17 @@ def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
-    pygame.mixer.music.stop() # Останавливаем музыку при начале игры
+    pygame.mixer.music.stop()  # Останавливаем музыку при начале игры
 
     dream_map = dialogs = creatures_group = enemy = enemy2 = None
     back_photo = cloud_layer = background_layer = platforms_group = deadly_layer = player = end_game = None
+    rain = []
 
     # Карта: сон
     def dream():
         nonlocal dream_map, dialogs, back_photo, cloud_layer, background_layer, \
             platforms_group, deadly_layer, player, end_game, creatures_group, enemy, enemy2
-        dream_map = Map(screen, "loco1")
+        dream_map = Map(screen, "location_one\loco1")
         player_pos = (
             int(dream_map.get_player_start_position()[0]),
             int(dream_map.get_player_start_position()[1]))  # Получаем позицию игрока с карты
@@ -70,7 +71,49 @@ def game():
                           100 * FACTOR_X,
                           'спасибо!', 'да, я такой!')]
 
-    dream()
+    # Карта: город
+    def city():
+        nonlocal dream_map, dialogs, back_photo, cloud_layer, background_layer, \
+            platforms_group, deadly_layer, player, end_game, creatures_group, rain
+        city_map = Map(screen, "location_two\loco2")
+
+        player_pos = (
+            int(city_map.get_player_start_position()[0]),
+            int(city_map.get_player_start_position()[1]))  # Получаем позицию игрока с карты
+
+        win_flag_pos = (
+            int(city_map.get_win_flag_position()[0]),
+            int(city_map.get_win_flag_position()[1]))
+
+        groups = city_map.get_groups()  # Получаем все группы спрайтов с нашей карты
+
+        # ЛОКАЛЬНЫЕ (для game) группы
+        back_photo = pygame.sprite.Group()  # Статичный бэк
+        cloud_layer = pygame.sprite.Group() # Не использующиеся группы всё равно нужно определять, иначе они будут None
+        background_layer = groups[0]  # Бэкграунд
+        platforms_group = groups[1]  # Группа платформ
+        deadly_layer = groups[2]  # Смертельные блоки
+        creatures_group = pygame.sprite.Group()  # Группа игрока
+
+        # background
+        Background(load_image("maps/location_two/assets/background.png"), -300, -300, back_photo)
+
+        # Создаём игрока
+        player = Player(creatures_group, player_pos, platforms_group, deadly_layer)
+
+        # Создаём дождь
+        for _ in range(1000):
+            rain.append(Drop(city_map.width * 16, city_map.height * 16))
+
+        pygame.mixer.music.load("../data/sounds/rain_sound.mp3")
+        pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(0.05)
+
+        # Вин поз
+        end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
+
+    # dream()
+    city()
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pygame.Surface(screen.get_size())
@@ -151,18 +194,24 @@ def game():
         # creatures_group.update(creatures_group)
         for sprite in creatures_group:
             sprite.update(creatures_group)
-        enemy.check_trigger_radius(player)
-        enemy2.check_trigger_radius(player)
+        # enemy.check_trigger_radius(player) # Если на карте нет энемисов?
+        # enemy2.check_trigger_radius(player)
 
         # Обновление камеры
         camera.update(player)
 
         # Рисуем все группы спрайтов с учётом камеры
         camera.draw_group(bottom_layer, screen)
-        camera.draw_group(background_layer, screen)
         camera.draw_group(back_photo, screen)
-        camera.draw_group(cloud_layer, screen)
         camera.draw_group(background_layer, screen)
+
+        # Если дождь был создан, то рисуем его
+        if rain:
+            for drop in rain:
+                drop.update()
+                drop.draw()
+
+        camera.draw_group(cloud_layer, screen)
         camera.draw_group(mid_layer, screen)
         camera.draw_group(platforms_group, screen)
         camera.draw_group(deadly_layer, screen)
@@ -171,12 +220,13 @@ def game():
 
         # ______________ ДИАЛОГИ __________________ #
         cur_dialog = None
-        for item_dialog in dialogs:
-            if player.rect.colliderect(item_dialog.x - item_dialog.radius + player.left_indent,
-                                       item_dialog.y - item_dialog.radius,
-                                       item_dialog.radius * 2 - player.left_indent - player.right_indent,
-                                       item_dialog.radius * 2):
-                cur_dialog = item_dialog
+        if dialogs:
+            for item_dialog in dialogs:
+                if player.rect.colliderect(item_dialog.x - item_dialog.radius + player.left_indent,
+                                           item_dialog.y - item_dialog.radius,
+                                           item_dialog.radius * 2 - player.left_indent - player.right_indent,
+                                           item_dialog.radius * 2):
+                    cur_dialog = item_dialog
 
         if cur_dialog and push:
             for i in range(10):
@@ -233,8 +283,8 @@ def start_screen():
 
     # Песня на заднем плане
     pygame.mixer.music.load("../data/sounds/start_screen_background_music.mp3")
-    pygame.mixer.music.play(-1) # Проигрывание + зацикливание
-    pygame.mixer.music.set_volume(0.05) # Уменьшаем громкость в половину1
+    pygame.mixer.music.play(-1)  # Проигрывание + зацикливание
+    pygame.mixer.music.set_volume(0.05)  # Уменьшаем громкость в половину1
 
     while True:
         for event in pygame.event.get():
