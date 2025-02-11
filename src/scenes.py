@@ -1,74 +1,155 @@
-import random
-from random import choice as ch
-
 import pygame.image
-from pygame.rect import Rect
 
 from objects import *
 from map import Map
 from camera import Camera
 from src.creatures import Player, Enemy
 
+save_id = None
+last_scene = None
+
+
+def create_dream_save(save_id, cur):
+    dream_map = Map(screen, "loco1")
+    cur.execute('INSERT INTO healths(current_health, max_health, size_factor, indent) VALUES(?, ?, ?, ?)',
+                (10, 10, 0.2, 15))  # Здоровье игрока в сохранении
+
+    # Добавляем игрока по координатам из карты
+    cur.execute('INSERT INTO players(health, x, y, direction) SELECT MAX(Id), ?, ?, ? FROM healths',
+                (int(dream_map.get_player_start_position()[0]),  # x игрока
+                 int(dream_map.get_player_start_position()[1]),  # y игрока
+                 'right'))  # direction игрока
+
+    # Добавляем игрока в локацию
+    cur.execute('INSERT INTO locations(player) SELECT MAX(Id) FROM players')  # id последнего добавленного игрока
+
+    location_id = cur.execute('SELECT MAX(Id) FROM locations').fetchone()[0]
+
+    # Сюда добавлять диалоги С НАЧАЛА СЮЖЕТА
+    dialogs = [{'question': 'СОСАЛ?',
+                'x': int(dream_map.get_umiko_position()[0]),
+                'y': int(dream_map.get_umiko_position()[1]),
+                'radius': 100 * FACTOR_X,  # радиус активации
+                'answers': ['ДА', 'ДА']}, ]
+    for dialog in dialogs:
+        # Добавляем диалоги с привязкой к локации
+        cur.execute('''INSERT INTO dialogs(question, x, y, radius, location) VALUES(?, ?, ?, ?, ?)''',
+                    (dialog['question'], dialog['x'], dialog['y'], dialog['radius'], location_id))
+
+        # Добавляем ответы с привязкой к диалогу
+        for answer in dialog['answers']:
+            cur.execute('''INSERT INTO answers(dialog, answer)
+                        SELECT MAX(Id), ? FROM dialogs''', (answer,))
+
+    skeletons = [{'x': int(dream_map.get_player_start_position()[0]),
+                  'y': int(dream_map.get_player_start_position()[1])},
+                 {'x': 557,
+                  'y': 1138}]
+    for skeleton in skeletons:
+        cur.execute('INSERT INTO healths(current_health, max_health, size_factor, indent) VALUES(?, ?, ?, ?)',
+                    (10, 10, 0.1, 15))  # Здоровье скелета в сохранении
+
+        # Добавляем скелета с привязкой к хп
+        cur.execute('''INSERT INTO skeletons(health, x, y, direction, location)
+                    SELECT MAX(Id), ?, ?, ?, ? FROM healths''',
+                    (skeleton['x'], skeleton['y'], 'right', location_id))
+
+    # Добавляем сон в сохранение
+    cur.execute('''UPDATE saves SET dream = ? WHERE id = ?''', (location_id, save_id))
+
+
+@create_connect
+def get_dream_save(cur=None):
+    location_id = cur.execute('SELECT dream FROM saves WHERE id=?', (save_id,)).fetchone()[0]
+    dream_map = Map(screen, "loco1")
+    map_groups = dream_map.get_groups()
+
+    groups = {'background_layer': map_groups[0],  # Бэкграунд
+              'platforms_group': map_groups[1],  # Группа платформ
+              'deadly_layer': map_groups[2],  # Смертельные блоки
+              'creatures_group': pygame.sprite.Group()}  # Все существа
+
+    # Заполняем диалоги
+    dialogs = []
+    for dialog in cur.execute('''SELECT id, question, x, y, radius FROM dialogs WHERE location=?''',
+                              (location_id,)).fetchall():
+        answers = cur.execute('''SELECT answer FROM answers WHERE dialog=?''', (dialog[0], )).fetchall()
+        dialogs.append(Dialog(*list(dialog[1:]) + [i[0] for i in answers]))
+
+    Background(load_image("images/background.png"), 0, 0, groups['background_layer'])
+
+    # Инициализируем игрока
+    x, y, direction, hp = cur.execute('''SELECT x, y, direction, (SELECT current_health FROM healths WHERE id=health)
+    FROM players WHERE id=(SELECT player FROM locations WHERE id=?)''', (location_id, )).fetchone()
+    player = Player(groups['creatures_group'], (x, y), groups['platforms_group'], groups['deadly_layer'], hp=hp)
+    player.direction = direction
+
+    skeletons = []
+    for x, y, direction, hp in cur.execute('''SELECT x, y, direction, (SELECT current_health 
+    FROM healths WHERE id=health) FROM skeletons WHERE location=?''', (location_id, )).fetchall():
+        enemy = Enemy(groups['creatures_group'], (x, y), groups['platforms_group'], groups['deadly_layer'], hp=hp)
+        enemy.direction = direction
+        skeletons.append(enemy)
+
+    return groups, dialogs, player, skeletons
+
 
 # Основной цикл игры
+
+@create_connect
+def location_save(creatures_group, dialogs, location_name='dream', cur=None):
+    location_id = cur.execute(f'SELECT {location_name} FROM saves WHERE id=?', (save_id,)).fetchone()[0]
+
+    for sk_id, health in cur.execute('SELECT id, health FROM skeletons WHERE location=?', (location_id,)).fetchall():
+        cur.execute('DELETE FROM skeletons WHERE id=?', (sk_id,)).fetchall()
+        cur.execute('DELETE FROM healths WHERE id=?', (health,))
+
+    for creature in creatures_group:
+        if creature.__class__.__name__ == 'Player':
+            player_id = cur.execute('SELECT player FROM locations WHERE id=?', (location_id, )).fetchone()[0]
+            cur.execute('UPDATE players SET x=?, y=?, direction=? WHERE id=?',
+                        (creature.rect.x, creature.rect.y, creature.direction, player_id))
+            cur.execute('''UPDATE healths SET current_health=? 
+                        WHERE id=(SELECT health FROM players WHERE id=?)''',
+                        (creature.health.current_health, player_id))
+
+        elif creature.__class__.__name__ == 'Enemy':
+            cur.execute('INSERT INTO healths(current_health, max_health, size_factor, indent) VALUES(?, ?, ?, ?)',
+                        (creature.health.current_health, creature.health.max,
+                         creature.health.factor, creature.health.indent))  # Здоровье скелета в сохранении
+
+            # Добавляем скелета с привязкой к хп
+            cur.execute('''INSERT INTO skeletons(health, x, y, direction, location)
+                       SELECT MAX(Id), ?, ?, ?, ? FROM healths''',
+                        (creature.rect.x, creature.rect.y, creature.direction, location_id))
+
+    for bd_dialog in cur.execute('SELECT id FROM dialogs WHERE location=?', (location_id,)).fetchall():
+        cur.execute('DELETE FROM answers WHERE dialog=?', (bd_dialog[0],)).fetchall()
+        cur.execute('DELETE FROM dialogs WHERE id=?', (bd_dialog[0],))
+    for dialog in dialogs:
+        # Добавляем диалоги с привязкой к локации
+        cur.execute('''INSERT INTO dialogs(question, x, y, radius, location) VALUES(?, ?, ?, ?, ?)''',
+                    (dialog.question, dialog.x, dialog.y, dialog.radius, location_id))
+
+        # Добавляем ответы с привязкой к диалогу
+        for answer in dialog.answers:
+            cur.execute('''INSERT INTO answers(dialog, answer)
+                                SELECT MAX(Id), ? FROM dialogs''', (answer,))
+
+
 def game():
+    global last_scene
+    last_scene = start_screen
+
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
 
-    dream_map = dialogs = creatures_group = enemy = enemy2 = None
-    back_photo = cloud_layer = background_layer = platforms_group = deadly_layer = player = end_game = None
+    def save_return(value):
+        location_save(groups['creatures_group'], dialogs)
+        return value
 
     # Карта: сон
-    def dream():
-        nonlocal dream_map, dialogs, back_photo, cloud_layer, background_layer, \
-            platforms_group, deadly_layer, player, end_game, creatures_group, enemy, enemy2
-        dream_map = Map(screen, "loco1")
-        player_pos = (
-            int(dream_map.get_player_start_position()[0]),
-            int(dream_map.get_player_start_position()[1]))  # Получаем позицию игрока с карты
-        umiko_pos = (
-            int(dream_map.get_umiko_position()[0]),
-            int(dream_map.get_umiko_position()[1]))
-        win_flag_pos = (
-            int(dream_map.get_win_flag_position()[0]),
-            int(dream_map.get_win_flag_position()[1]))
-
-        groups = dream_map.get_groups()  # Получаем все группы спрайтов с нашей карты
-
-        # Получаем все файлы облаков
-        files = get_images("../data/maps/location_one/clouds")
-        clouds = []
-        for i in files:
-            clouds.append(load_image(f"maps/location_one/clouds/{i}"))
-
-        # ЛОКАЛЬНЫЕ (для game) группы
-        back_photo = pygame.sprite.Group()  # Статичный бэк
-        cloud_layer = pygame.sprite.Group()  # Слой для облаков
-        background_layer = groups[0]  # Бэкграунд
-        platforms_group = groups[1]  # Группа платформ
-        deadly_layer = groups[2]  # Смертельные блоки
-        creatures_group = pygame.sprite.Group()  # Группа игрока
-
-        # background
-        Background(load_image("images/background.png"), 0, 0, back_photo)
-
-        # Создаём игрока
-        player = Player(creatures_group, player_pos, platforms_group, deadly_layer)
-        enemy = Enemy(creatures_group, player_pos, platforms_group, deadly_layer)
-        enemy2 = Enemy(creatures_group, (557, 1138), platforms_group, deadly_layer)
-        end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
-
-        # Создаём облака
-        for _ in range(10):
-            BgCloud(cloud_layer, clouds, dream_map.width, dream_map.height)
-
-        dialogs = [Dialog('кРСАВА, убил монстра',
-                          umiko_pos[0],
-                          umiko_pos[1],
-                          100 * FACTOR_X,
-                          'спасибо!', 'да, я такой!')]
-
-    dream()
+    groups, dialogs, player, skeletons = get_dream_save()
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pygame.Surface(screen.get_size())
@@ -79,28 +160,29 @@ def game():
     degree = 0  # анимация (Е)
     activ_dial_x = activ_dial_y = 0  # положение анимации (Е)
     push = False  # зажата ли (Е)
-    e_image = load_image('images/e.png', 'MENU')  # картинка Е
+    e_image = load_image('images/e.png', 'MENU', factor_x=0.58, factor_y=0.58)
     # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
 
-    pause = Pause()
+    # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
+    jump_pressed_last_frame = False
 
-    jump_pressed_last_frame = False  # Для обработки нажатия прыжка по новой механики (она вводится, что бы работал двойной прыжок)
-
-    # Создаём камеру
+    # Создаём камеру, паузу, конец игры
     camera = Camera()
+    pause = Pause()
+    end_game = EndGame(1940, 1956)
 
     while True:
         if pygame.sprite.collide_mask(player, end_game):
             end_game.set_active(screen)
             end_game_log = render_popup(end_game)
             if end_game_log in 'start_screen':
-                return start_screen
+                save_return(start_screen)
             elif end_game_log == 'quit':
-                return 'close'
+                return save_return('close')
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return 'close'
+                return save_return('close')
             if event.type == pygame.KEYDOWN:
                 if event.key == 101:
                     screen2 = pygame.Surface(screen.get_size())
@@ -116,9 +198,10 @@ def game():
                     pause.set_active(screen)
                     pause_log = render_popup(pause)
                     if pause_log in ('start_screen', 'settings'):
-                        return {'start_screen': start_screen, 'settings': lambda: settings(game)}[pause_log]
+                        return save_return({'start_screen': start_screen, 'settings': settings}[pause_log])
                     elif pause_log == 'quit':
-                        return 'close'
+                        location_save(groups['creatures_group'], dialogs)
+                        return save_return('close')
             if event.type == pygame.KEYUP:
                 if event.key == 101:
                     push = False
@@ -147,25 +230,18 @@ def game():
 
         # Обновление всех существ
         # creatures_group.update(creatures_group)
-        for sprite in creatures_group:
-            sprite.update(creatures_group)
-        enemy.check_trigger_radius(player)
-        enemy2.check_trigger_radius(player)
+        for sprite in groups['creatures_group']:
+            sprite.update(groups['creatures_group'])
+        for skeleton in skeletons:
+            skeleton.check_trigger_radius(player)
 
         # Обновление камеры
         camera.update(player)
 
         # Рисуем все группы спрайтов с учётом камеры
-        camera.draw_group(bottom_layer, screen)
-        camera.draw_group(background_layer, screen)
-        camera.draw_group(back_photo, screen)
-        camera.draw_group(cloud_layer, screen)
-        camera.draw_group(background_layer, screen)
-        camera.draw_group(mid_layer, screen)
-        camera.draw_group(platforms_group, screen)
-        camera.draw_group(deadly_layer, screen)
+        for group in groups.values():
+            camera.draw_group(group, screen)
         camera.draw_group(top_layer, screen)
-        camera.draw_group(creatures_group, screen)
 
         # ______________ ДИАЛОГИ __________________ #
         cur_dialog = None
@@ -181,6 +257,10 @@ def game():
                 degree += 1 * 60 / fps
                 pygame.draw.circle(screen2, pygame.Color('white'), radius=2,
                                    center=return_dot(degree, 30, activ_dial_x, activ_dial_y))
+            if degree > 400 and push:
+                sounds['dialog_activation'].play()
+                push = False
+                cur_dialog.set_active(screen)
             screen.blit(screen2, (0, 0))
             e_image.set_alpha(255)
             screen.blit(e_image, (activ_dial_x - e_image.get_rect().width / 2,
@@ -191,28 +271,29 @@ def game():
                                   cur_dialog.y - e_image.get_rect().height / 2 - camera.y()))
         if cur_dialog:
             screen3.fill((0, 0, 0))
-            pygame.draw.rect(screen3, pygame.Color('white'), (cur_dialog.x - cur_dialog.radius - camera.x(),
-                                                              cur_dialog.y - cur_dialog.radius - camera.y(),
-                                                              cur_dialog.radius * 2,
-                                                              cur_dialog.radius * 2))
+            pygame.draw.rect(screen3, pygame.Color('white'), (cur_dialog.x - cur_dialog.radius * 0.58 - camera.x(),
+                                                              cur_dialog.y - cur_dialog.radius * 0.58 - camera.y(),
+                                                              cur_dialog.radius * 2 * 0.58,
+                                                              cur_dialog.radius * 2 * 0.58))
             screen.blit(screen3, (0, 0))
-        if degree > 400 and push:
-            push = False
-            cur_dialog.set_active(screen)
         if cur_dialog and cur_dialog.active:
             answer = render_popup(cur_dialog)
             dialogs.remove(cur_dialog)
             cur_dialog = None
             if answer == 'quit':
-                return 'close'
+                return save_return('close')
         # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
 
         pygame.display.flip()
         clock.tick(fps)
 
+    # Экран 'приветствия', главная менюшка
 
-# Экран 'приветствия', главная менюшка
+
 def start_screen():
+    global last_scene
+    last_scene = start_screen
+
     initialization()
 
     bg = Background(load_image('menu UI/Background.png', 'MENU'), 670, 0, bottom_layer)
@@ -225,7 +306,7 @@ def start_screen():
     cloud2 = Cloud(-1)
     play_button = Button(32, 528, select_save, load_image('buttons/Play.png', 'MENU'),
                          (all_sprites, button_layer))
-    settings_button = Button(33, 788, lambda: settings(start_screen),
+    settings_button = Button(33, 788, settings,
                              load_image('buttons/Settings.png', 'MENU'),
                              (all_sprites, button_layer))
     while True:
@@ -251,22 +332,37 @@ def start_screen():
         pygame.display.flip()
         clock.tick(fps)
 
+    # Экран выбора сохранения
 
-# Экран выбора сохранения
-def select_save():
-    save_count = 0
+
+@create_connect
+def select_save(cur=None):
+    initialization()
+
+    saves = cur.execute('SELECT id FROM saves').fetchall()
+    save_count = len(saves)
     save_buttons = []
 
+    for save in saves:
+        save_buttons.append(Button(381, 160 + 151 * (saves.index(save)), save[0],
+                                   load_image(f'buttons/saves/Save {saves.index(save) + 1}.png', 'MENU'),
+                                   (all_sprites, button_layer)))
+
     def plus():
-        nonlocal save_count
+        nonlocal save_count, cur
+        cur.execute('INSERT INTO saves(current_location) VALUES("dream")')  # создаем новое сохранение
+        save_id = cur.execute('SELECT MAX(Id) FROM saves').fetchone()[0]
+
         save_count += 1
-        save_buttons.append(Button(381, 160 + 151 * (save_count - 1), game,
+        create_dream_save(save_id, cur=cur)
+
+        save_buttons.append(Button(381, 160 + 151 * (save_count - 1), save_id,
                                    load_image(f'buttons/saves/Save {save_count}.png', 'MENU'),
                                    (all_sprites, button_layer)))
         if save_count == 5:
             plus_button.kill()
 
-    initialization()
+    # for save in saves:
 
     bg = Background(load_image('select UI/Background.png', 'MENU'), 0, 0, bottom_layer)
     art1 = Art(load_image('select UI/Cloud 1.png', 'MENU'), 1038, 102)
@@ -292,7 +388,9 @@ def select_save():
                              [i.update(event.pos, 'up') for i in save_buttons]):
                     if func == start_screen:
                         return start_screen
-                    elif func == game:
+                    elif func.__class__.__name__ == 'int':
+                        global save_id
+                        save_id = func
                         return game
                     elif func:
                         func()
@@ -308,15 +406,16 @@ def select_save():
         pygame.display.flip()
         clock.tick(fps)
 
+    # Экран настроек
 
-# Экран настроек
-def settings(back_scene):
+
+def settings():
     initialization()
 
     bg = Background(load_image('settings UI/Background.png', 'MENU'), 0, 0, bottom_layer)
     gear = Gearwheel()
-    bookmark_button = Button(350, 0, back_scene,
-                             load_image('buttons/BookmarkHome.png' if back_scene == start_screen
+    bookmark_button = Button(350, 0, last_scene,
+                             load_image('buttons/BookmarkHome.png' if last_scene == start_screen
                                         else 'buttons/BookmarkBack.png', 'MENU'),
                              (all_sprites, button_layer))
 
@@ -330,8 +429,8 @@ def settings(back_scene):
                 button_layer.update(event.pos, 'down')
             if event.type == pygame.MOUSEBUTTONUP:
                 for func in [bookmark_button.update(event.pos, 'up')]:
-                    if func == back_scene:
-                        return back_scene
+                    if func == last_scene:
+                        return last_scene
                     elif func:
                         func()
             if event.type == MYEVENTTYPE:

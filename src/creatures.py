@@ -4,7 +4,7 @@ import pygame
 
 from src.animation import Animation
 from src.objects import Event, Health
-from src.utils import fps, HEIGHT, WIDTH
+from src.utils import fps, HEIGHT, WIDTH, sounds
 
 
 class Creature(pygame.sprite.Sprite):
@@ -33,6 +33,7 @@ class Creature(pygame.sprite.Sprite):
         self.is_ground = False
         self.pos = pos
         self.direction = "right"  # Куда смотрит существо
+        self.die_sound = None  # Звук смерти существа
 
         # image и animation прописывать отдельно (см. Player)
 
@@ -97,6 +98,7 @@ class Creature(pygame.sprite.Sprite):
 
     def die(self):
         if not self.is_die:
+            self.die_sound.play()
             self.is_die = True
             self.health.kill()
             self.set_animation(f'die_{self.direction}')
@@ -170,10 +172,12 @@ class Player(Creature):
                            "attack1_right": Animation("attack-1", 'character', frame_rate=100),
                            "attack1_left": Animation("attack-1", 'character', frame_rate=100,
                                                      flip_horizontal=True),
-                           "die_right": Animation('die', 'character', frame_rate=100),
-                           "die_left": Animation('die', 'character', frame_rate=100,
+                           "die_right": Animation('die', 'character', frame_rate=200),
+                           "die_left": Animation('die', 'character', frame_rate=200,
                                                  flip_horizontal=True)}
         self.current_animation = self.animations["idle_right"]
+
+        self.die_sound = sounds['die_character']
 
         # Создаём спрайт игрока
         self.image = self.current_animation.get_frame()
@@ -217,13 +221,11 @@ class Player(Creature):
                 for sprite in all_creatures:
                     if sprite != self:
                         if sprite.rect.colliderect(attack_radius):
-                            sound = pygame.mixer.Sound('../data/sounds/удар-2.wav')
-                            sound.play()
+                            sounds['hit_target'].play()
                             sprite.get_damage(1, self.direction)
                             break
                 else:
-                    sound = pygame.mixer.Sound('../data/sounds/удар-1.wav')
-                    sound.play()
+                    sounds['hit_air'].play()
 
             if not elapsed_time < self.attack1_event.duration:
                 self.attack1_event.start_time = None  # Сбрасываем время начала атаки
@@ -350,19 +352,21 @@ class Enemy(Creature):
         self.current_attack = None
 
         # Группы анимаций принадлежащих игроку
-        self.animations = {"move_right": Animation("walk", 'sceleton', frame_rate=100),
-                           "move_left": Animation("walk", 'sceleton', frame_rate=100,
+        self.animations = {"move_right": Animation("walk", 'skeleton', frame_rate=100),
+                           "move_left": Animation("walk", 'skeleton', frame_rate=100,
                                                   flip_horizontal=True),
-                           "idle_right": Animation("idle", 'sceleton', frame_rate=200),
-                           "idle_left": Animation("idle", 'sceleton', frame_rate=200,
+                           "idle_right": Animation("idle", 'skeleton', frame_rate=200),
+                           "idle_left": Animation("idle", 'skeleton', frame_rate=200,
                                                   flip_horizontal=True),
-                           "attack_right": Animation('attack', 'sceleton', frame_rate=100),
-                           "attack_left": Animation('attack', 'sceleton', frame_rate=100,
+                           "attack_right": Animation('attack', 'skeleton', frame_rate=100),
+                           "attack_left": Animation('attack', 'skeleton', frame_rate=100,
                                                     flip_horizontal=True),
-                           "die_right": Animation('die', 'sceleton', frame_rate=400),
-                           "die_left": Animation('die', 'sceleton', frame_rate=400,
+                           "die_right": Animation('die', 'skeleton', frame_rate=400),
+                           "die_left": Animation('die', 'skeleton', frame_rate=400,
                                                  flip_horizontal=True)}
         self.current_animation = self.animations["idle_right"]
+
+        self.die_sound = sounds['die_skeleton']
 
         # Создаём спрайт игрока
         self.image = self.current_animation.get_frame()
@@ -411,11 +415,9 @@ class Enemy(Creature):
                     if sprite != self:
                         if sprite.rect.colliderect(attack_radius):
                             sprite.get_damage(2, self.direction)
-                            sound = pygame.mixer.Sound('../data/sounds/удар-2.wav')
-                            sound.play()
+                            sounds['hit_target'].play()
                 else:
-                    sound = pygame.mixer.Sound('../data/sounds/удар-1.wav')
-                    sound.play()
+                    sounds['hit_air'].play()
 
             if not elapsed_time < self.attack_event.duration:
                 self.attack_event.start_time = None  # Сбрасываем время начала атаки

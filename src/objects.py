@@ -77,11 +77,12 @@ class Dialog(Popup):
     def __init__(self, question, x_activation, y_activation, radius, *answers):
         super().__init__(100, (255, 255, 255))
         self.question = question
+        self.answers = answers
         self.radius = radius
         self.x = x_activation
         self.y = y_activation
 
-        for answer in enumerate(answers):
+        for answer in enumerate(self.answers):
             button = load_image('buttons/Empty.png', 'MENU')
 
             font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf', int(50 * FACTOR_X))
@@ -142,7 +143,7 @@ class Pause(Popup):
 
 class EndGame(Popup, pygame.sprite.Sprite):
     def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self, all_sprites, mid_layer)
+        pygame.sprite.Sprite.__init__(self, all_sprites, top_layer)
         Popup.__init__(self, 100, (255, 255, 255))
         self.image = load_image('images/flag.png')
         self.image = pygame.transform.scale(self.image, (100 * 0.58, 100 * 0.58))  # (100 * FACTOR_X, 100 * FACTOR_Y)
@@ -344,13 +345,13 @@ class Event:
 
 
 class Health(pygame.sprite.Sprite):
-    def __init__(self, max_health, indent, size_factor, alpha=255):
+    def __init__(self, max_health, indent, size_factor):
         super().__init__(all_sprites, top_layer)
 
         self.current_health = max_health  # текущее здоровье
+        self.max = max_health  # максимальное здоровье
         self.factor = size_factor  # меняет размер сердец на экране
         self.indent = indent  # отступ между сердцами в пикселях
-        self.alpha = alpha  # прозрачность сердец
 
         self.image = None
         self.rect = None
@@ -370,7 +371,6 @@ class Health(pygame.sprite.Sprite):
             self.image = pygame.transform.scale(self.image,
                                                 (size_width * self.factor * 0.9, 114 * self.factor))
             self.image.set_colorkey((0, 0, 0))
-            self.image.set_alpha(self.alpha)
             self.rect = self.image.get_rect()
 
     def synchron_pos(self, target, indent_x, indent_y):

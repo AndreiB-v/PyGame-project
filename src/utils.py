@@ -1,5 +1,6 @@
 # Файл для вспомогательных функций
 import os
+import sqlite3
 import sys
 from math import sin
 import json
@@ -39,6 +40,11 @@ bottom_layer = pygame.sprite.Group()
 mid_layer = pygame.sprite.Group()
 top_layer = pygame.sprite.Group()
 button_layer = pygame.sprite.Group()
+
+sounds_names = ['die_character', 'die_skeleton', 'hit_air', 'hit_target', 'dialog_activation']
+sounds = {}
+for name in sounds_names:
+    sounds[name] = pygame.mixer.Sound(f'../data/sounds/{name}.wav')
 
 
 # Полностью очищаем объекты прошлой сцены
@@ -134,3 +140,15 @@ def render_popup(popup_class):
 
         pygame.display.flip()
         clock.tick(fps)
+
+
+def create_connect(func):
+    def decorated_func(*args, **kwargs):
+        con = sqlite3.connect("../data/database/db.sqlite")
+        cur = con.cursor()
+        result = func(*args, **kwargs, cur=cur)
+        con.commit()
+        con.close()
+        return result
+
+    return decorated_func
