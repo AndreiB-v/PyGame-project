@@ -17,7 +17,7 @@ class Tile(pygame.sprite.Sprite):
 class Map:
     def __init__(self, screen, map_name):
         self.screen = screen
-        self.tmx_data = load_pygame(f'../data/maps/location_one/{map_name}.tmx')
+        self.tmx_data = load_pygame(f'../data/maps/{map_name}.tmx')
         self.all_sprites = pygame.sprite.Group()
         self.platforms_group = pygame.sprite.Group()
         self.die_block_group = pygame.sprite.Group()

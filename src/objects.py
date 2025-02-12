@@ -1,3 +1,4 @@
+from asyncore import write
 from math import ceil
 from random import choice, randint, uniform
 
@@ -336,6 +337,25 @@ class BgCloud(pg.sprite.Sprite):
             self.rect.x = -self.rect.width if self.direction == 1 else self.screen_width
             self.rect.y = randint(0, self.screen_height - self.rect.height)  # Новая высота
             self.speed = uniform(1.2, 3.5) * self.direction  # Перегенерируем скорость
+
+
+# Капля
+class Drop:
+    def __init__(self, width, height):
+        self.width, self.height = width, height
+        self.x, self.y = randint(0, self.width), randint(0, self.height)
+        self.size = randint(10, 20)
+        c = self.size * 12 + 5
+        self.color = (c, c, c)
+
+    def update(self):
+        self.y += self.size * 2
+
+        if self.y > self.height:
+            self.y = randint(-self.height, 0)
+
+    def draw(self):
+        pygame.draw.line(screen, self.color, (self.x, self.y), (self.x, self.y + self.size), width=self.size // 10)
 
 
 # Класс корабля (это из экрана Start screen, движется туда/сюда + поворачивает объект)
