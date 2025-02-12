@@ -1,44 +1,66 @@
 # Файл для вспомогательных функций
 import os
+import sqlite3
 import sys
 from math import sin
 import json
 
-import pygame
+import pygame as pg
+import pygame.display
 
 with open('../settings.json') as file:
     settings = json.load(file)
 
-# Задаем основные настраиваемые параметры из settings.json
-# fps и volume НЕ константы так как будут меняться в настройках в реальном времени
-# для изменения размера экрана мы будем использовать перезаход в игру, так что они константы
-fps = settings['FPS']
-volume = settings['FPS']
-app_bar = settings['APP BAR']
-# Задается размер экрана с соотношением 16:9
-SIZE = WIDTH, HEIGHT = 16 * settings['SIZE FACTOR'], 9 * settings['SIZE FACTOR']
+old_settings = dict(settings)  # сохраняем текущие настройки
+fps = settings['FPS']  # фпс
+volume = settings['SOUNDS VOLUME']  # громкость звука
+app_bar = settings['APP BAR']  # верхняя панель
+size_factor = settings['SIZE FACTOR'] + 40  # фактор экрана
 
 # Инициализируем pygame
-pygame.init()
-clock = pygame.time.Clock()
-
-# Создается экран, в зависимости от настроек
-if app_bar:
-    screen = pygame.display.set_mode(SIZE)
-    pygame.display.set_caption("Корабли ходят по небу")
-else:
-    screen = pygame.display.set_mode(SIZE, pygame.NOFRAME)
-
-# факторы, которые умножаем на каждый x/y, для работы с размером экрана
-FACTOR_X = WIDTH / 1920
-FACTOR_Y = HEIGHT / 1080
+pg.init()
+clock = pg.time.Clock()
 
 # Определяем группы спрайтов
-all_sprites = pygame.sprite.Group()
-bottom_layer = pygame.sprite.Group()
-mid_layer = pygame.sprite.Group()
-top_layer = pygame.sprite.Group()
-button_layer = pygame.sprite.Group()
+all_sprites = pg.sprite.Group()
+bottom_layer = pg.sprite.Group()
+mid_layer = pg.sprite.Group()
+top_layer = pg.sprite.Group()
+button_layer = pg.sprite.Group()
+
+
+def sounds_init():
+    sounds_names = ['die_character', 'die_skeleton', 'hit_air', 'hit_target', 'dialog_activation']
+    all_sounds = {}
+    for name in sounds_names:
+        sound = pg.mixer.Sound(f'../data/sounds/{name}.wav')
+        sound.set_volume(volume * 0.01)
+        all_sounds[name] = sound
+    return all_sounds
+
+
+def screen_init():
+    pygame.display.quit()
+    pygame.display.init()
+    # Создается экран, в зависимости от настроек
+    if app_bar:
+        surface = pg.display.set_mode(size)
+        pg.display.set_caption("Корабли ходят по небу")
+        pg.display.set_icon(pg.image.load('../data/images/icon.png'))
+    else:
+        surface = pg.display.set_mode(size, pg.NOFRAME)
+    return surface
+
+
+# Задается размер экрана с соотношением 16:9
+size = width, height = 16 * size_factor, 9 * size_factor  # (40 - наименьшее, 120 - наибольшее)
+
+# факторы, которые умножаем на каждый x/y, для работы с размером экрана
+factor_x = width / 1920
+factor_y = height / 1080
+
+screen = screen_init()
+sounds = sounds_init()
 
 
 # Полностью очищаем объекты прошлой сцены
@@ -51,37 +73,38 @@ def initialization():
 
 
 # Функция для добавления изображений
-def load_image(name, mode=None, factor_x=FACTOR_X, factor_y=FACTOR_Y):
-    fullname = os.path.join('../data', name)
+def load_image(filename, mode=None, factors=(factor_x, factor_y)):
+    fullname = os.path.join('../data', filename)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
-    image = pygame.image.load(fullname)
-    # мод хромакея, удаляет задний фон
+    image = pg.image.load(fullname)
+
+    im_width = image.get_width()
+    im_height = image.get_height()
     if mode:
+        # мод хромакея, удаляет задний фон
         if 'CHROMAKEY' in mode:
             image = image.convert()
             if mode == -1:
                 color_key = image.get_at((0, 0))
             image.set_colorkey(color_key)
-        # мод меню, она
+        # мод для UI интерфейса
         if 'MENU' in mode:
-            x = image.get_width()
-            y = image.get_height()
-            image = pygame.transform.scale(image, (x * factor_x, y * factor_y))
-            image = image.convert_alpha()
+            image = pg.transform.scale(image, (im_width * factor_x, im_height * factor_y))
+        if 'CUSTOM_SIZE' in mode:
+            image = pg.transform.scale(image, (im_width * factors[0], im_height * factors[1]))
+        image = image.convert_alpha()
     return image
 
 
 # Получение всех картинок
-def get_images(dir):
-    directory = dir
+def get_images(directory):
     files = os.listdir(directory)  # Имена всех файлов
-
     return files
 
 
-# Функция для получения всех кадров анмиации
+# Функция для получения всех кадров анимации
 def load_animation(folder_path, enemy):
     # Путь к папке, где лежат кадры
     base_folder = os.path.join("../data/images", enemy, folder_path)
@@ -97,7 +120,7 @@ def load_animation(folder_path, enemy):
     for file_name in files:
         full_path = os.path.join(base_folder, file_name)
         image = load_image(full_path)
-        image = pygame.transform.scale(image, (100 * 0.58, 87 * 0.58))  # (100 * FACTOR_X, 87 * FACTOR_Y)
+        image = pg.transform.scale(image, (100 * 0.58, 87 * 0.58))  # (100 * FACTOR_X, 87 * FACTOR_Y)
         frames.append(image)
 
     return frames
@@ -119,12 +142,12 @@ def return_dot(degree, radius, x, y):
 # приостанавливает цикл, где был вызван до тех пор, пока не возвратит какое-либо значение, полученное от кнопок Popup
 def render_popup(popup_class):
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
                 return 'quit'
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pg.MOUSEBUTTONDOWN:
                 popup_class.update(event.pos, 'down')
-            if event.type == pygame.MOUSEBUTTONUP:
+            if event.type == pg.MOUSEBUTTONUP:
                 value = popup_class.update(event.pos, 'up')
                 if value:
                     return value
@@ -132,5 +155,43 @@ def render_popup(popup_class):
         screen.fill((0, 0, 0))
         popup_class.draw_popup(screen)
 
-        pygame.display.flip()
+        pg.display.flip()
         clock.tick(fps)
+
+
+def create_connect(func):
+    def decorated_func(*args, **kwargs):
+        con = sqlite3.connect("../data/database/db.sqlite")
+        cur = con.cursor()
+        result = func(*args, **kwargs, cur=cur)
+        con.commit()
+        con.close()
+        return result
+
+    return decorated_func
+
+
+def get_text(text, color=(0, 0, 0), font=None, font_size=50):
+    font = pg.font.Font(font, int(font_size))
+    text_surface = font.render(text, 1, color)
+    return text_surface
+
+
+# меняет и сохраняет настройки и возвращает, был ли изменен экран
+def update_settings():
+    global fps, volume, app_bar, size_factor, size, width, height, \
+        screen, factor_x, factor_y, old_settings, settings, sounds
+    with open('../settings.json', 'w') as settings_file:
+        json.dump(settings, settings_file)
+
+    fps = settings['FPS']
+    volume = settings['SOUNDS VOLUME']
+    app_bar = settings['APP BAR']
+    size_factor = settings['SIZE FACTOR'] + 40
+    size = width, height = 16 * size_factor, 9 * size_factor
+    factor_x = width / 1920
+    factor_y = height / 1080
+    screen = screen_init()
+    sounds = sounds_init()
+
+    old_settings = dict(settings)

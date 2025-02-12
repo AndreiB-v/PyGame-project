@@ -1,11 +1,11 @@
 import pygame
 
-from src.utils import WIDTH, HEIGHT
+import utils as ut
 
 
 class Camera:
     def __init__(self):
-        self.preview_rect = pygame.rect.Rect(0, 0, WIDTH, HEIGHT)
+        self.preview_rect = pygame.rect.Rect(0, 0, ut.width, ut.height)
 
     def update(self, target):
         # Камера следит за игроком
