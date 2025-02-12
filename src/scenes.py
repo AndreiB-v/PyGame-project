@@ -62,7 +62,7 @@ def create_dream_save(save_id, cur):
 @ut.create_connect
 def get_dream_save(cur=None):
     location_id = cur.execute('SELECT dream FROM saves WHERE id=?', (save_id,)).fetchone()[0]
-    dream_map = Map(ut.screen, "loco1")
+    dream_map = Map(ut.screen, "location_one/loco1")
     map_groups = dream_map.get_groups()
 
     groups = {'background_layer': map_groups[0],  # Бэкграунд
