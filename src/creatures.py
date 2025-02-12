@@ -4,7 +4,7 @@ import pygame
 
 from src.animation import Animation
 from src.objects import Event, Health
-from src.utils import fps, HEIGHT, WIDTH, sounds
+import utils as ut
 
 
 class Creature(pygame.sprite.Sprite):
@@ -48,11 +48,11 @@ class Creature(pygame.sprite.Sprite):
         if not self.is_die:
             self.direction = direction
             if direction == "right":
-                self.rect.x += self.move_factor * 60 / fps * 0.58  # * FACTOR_X
+                self.rect.x += self.move_factor * 60 / ut.fps * 0.58  # * FACTOR_X
                 self.set_animation("move_right")
 
             elif direction == "left":
-                self.rect.x -= self.move_factor * 60 / fps * 0.58  # * FACTOR_X
+                self.rect.x -= self.move_factor * 60 / ut.fps * 0.58  # * FACTOR_X
                 self.set_animation("move_left")
 
             self.is_moving = True
@@ -116,13 +116,13 @@ class Creature(pygame.sprite.Sprite):
 
     def update(self, *args):
         # Применяем гравитацию
-        self.fall_speed += self.gravity * 60 / fps
+        self.fall_speed += self.gravity * 60 / ut.fps
 
         # Проверяем на столкновения со стенками
         self.wall_collision()
 
         # Обновляем позицию по оси Y
-        self.rect.y += self.fall_speed * 60 / fps * 0.58  # * FACTOR_Y
+        self.rect.y += self.fall_speed * 60 / ut.fps * 0.58  # * FACTOR_Y
 
         # обновляем координаты по Y координате (препятствия над и под)
         hits = pygame.sprite.spritecollide(self, self.platforms_group, False)
@@ -177,7 +177,7 @@ class Player(Creature):
                                                  flip_horizontal=True)}
         self.current_animation = self.animations["idle_right"]
 
-        self.die_sound = sounds['die_character']
+        self.die_sound = ut.sounds['die_character']
 
         # Создаём спрайт игрока
         self.image = self.current_animation.get_frame()
@@ -221,11 +221,11 @@ class Player(Creature):
                 for sprite in all_creatures:
                     if sprite != self:
                         if sprite.rect.colliderect(attack_radius):
-                            sounds['hit_target'].play()
+                            ut.sounds['hit_target'].play()
                             sprite.get_damage(1, self.direction)
                             break
                 else:
-                    sounds['hit_air'].play()
+                    ut.sounds['hit_air'].play()
 
             if not elapsed_time < self.attack1_event.duration:
                 self.attack1_event.start_time = None  # Сбрасываем время начала атаки
@@ -285,7 +285,7 @@ class Player(Creature):
         self.die_block_collision()
 
         self.make_die()
-        self.health.synchron_pos(self, WIDTH * 0.49 - self.health.rect.width // 2, - HEIGHT * 0.45)
+        self.health.synchron_pos(self, ut.width * 0.49 - self.health.rect.width // 2, - ut.height * 0.45)
 
         # Если игрок стоит, то меняем анимацию на анимацию стояния бездействия, или на анимацию прыжка
         self.passive_animation()
@@ -366,7 +366,7 @@ class Enemy(Creature):
                                                  flip_horizontal=True)}
         self.current_animation = self.animations["idle_right"]
 
-        self.die_sound = sounds['die_skeleton']
+        self.die_sound = ut.sounds['die_skeleton']
 
         # Создаём спрайт игрока
         self.image = self.current_animation.get_frame()
@@ -415,9 +415,9 @@ class Enemy(Creature):
                     if sprite != self:
                         if sprite.rect.colliderect(attack_radius):
                             sprite.get_damage(2, self.direction)
-                            sounds['hit_target'].play()
+                            ut.sounds['hit_target'].play()
                 else:
-                    sounds['hit_air'].play()
+                    ut.sounds['hit_air'].play()
 
             if not elapsed_time < self.attack_event.duration:
                 self.attack_event.start_time = None  # Сбрасываем время начала атаки
@@ -446,8 +446,8 @@ class Enemy(Creature):
                         elif left_side > right_side:
                             self.rect.x = hit.rect.x - self.rect.width + self.right_indent
             else:
-                self.rect.x += {'right': self.move_factor * 60 / fps * 0.58,
-                                'left': - self.move_factor * 60 / fps * 0.58}[direction]
+                self.rect.x += {'right': self.move_factor * 60 / ut.fps * 0.58,
+                                'left': - self.move_factor * 60 / ut.fps * 0.58}[direction]
                 self.set_animation(f"move_{direction}")
                 self.direction = direction
                 self.is_moving = True

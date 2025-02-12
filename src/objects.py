@@ -1,27 +1,22 @@
 from math import ceil
 from random import choice, randint, uniform
 
-import pygame.font
-
-from src.animation import Animation
-from utils import *
-
-ship1_image = load_image('menu UI/Ship 1.png', 'MENU')
-ship2_image = load_image('menu UI/Ship 2.png', 'MENU')
+import pygame as pg
+import utils as ut
 
 
 # Класс кнопки
-class Button(pygame.sprite.Sprite):
+class Button(pg.sprite.Sprite):
     def __init__(self, x, y, function, image, groups):
         super().__init__(groups)
         self.backup_image = image
         self.image = image
         self.rect = self.image.get_rect()
-        self.rect.x = x * FACTOR_X
-        self.rect.y = y * FACTOR_Y
+        self.rect.x = x * ut.factor_x
+        self.rect.y = y * ut.factor_y
         self.function = function
 
-        self.size_factor = (self.rect.width / 10 * FACTOR_X, self.rect.height / 10 * FACTOR_Y)
+        self.size_factor = (self.rect.width / 10 * ut.factor_x, self.rect.height / 10 * ut.factor_y)
 
     def update(self, *args):
         x, y = args[0]
@@ -35,22 +30,105 @@ class Button(pygame.sprite.Sprite):
                 return self.function
         if pressed:
             if args[1] == 'down':
-                self.image = pygame.transform.scale(self.image,
-                                                    (self.rect.width - self.size_factor[0],
-                                                     self.rect.height - self.size_factor[1]))
+                self.image = pg.transform.scale(self.image,
+                                                (self.rect.width - self.size_factor[0],
+                                                 self.rect.height - self.size_factor[1]))
                 self.rect.x += self.size_factor[0] / 2
                 self.rect.y += self.size_factor[1] / 2
+
+
+class Slider(pg.sprite.Sprite):
+    def __init__(self, x, y, max_value, item, text=None, current=None):
+        super().__init__(ut.button_layer)
+        # для экрана current_value = 40
+        if current:
+            self.current_value = current
+        else:
+            self.current_value = ut.settings[item]
+        self.max_value = max_value
+        self.image, self.rect, self.bar, self.dot = self.generate_image()
+        self.item = item
+        if not text:
+            self.text = {'x': 0, 'y': 0, 'center': False, 'size': 100}
+        else:
+            self.text = text
+
+        # Координаты полоски прокрутки
+        self.bar.x = (x + self.dot.width) * ut.factor_x
+        self.bar.y = (y + self.dot.width // 2) * ut.factor_y
+        # Координаты основного спрайта
+        self.rect.x = (x - self.dot.width // 2) * ut.factor_x
+        self.rect.y = y * ut.factor_y
+        # Координаты точки прокрутки
+        self.dot.x += self.rect.x
+        self.dot.y = self.rect.y
+
+        self.pos = (x, y)
+        self.is_active = False
+
+    def generate_image(self):
+        slider_bar = ut.load_image('settings UI/slider_bar.png', 'MENU')
+        slider_dot = ut.load_image('settings UI/slider_dot.png', 'MENU')
+        bar = slider_bar.get_rect()
+        dot = slider_dot.get_rect()
+        image = pg.Surface((bar.width + dot.width, dot.height), pg.SRCALPHA)
+        rect = image.get_rect()
+        image.blit(slider_bar, (dot.width // 2, rect.height // 2 - bar.height // 2))
+        image.blit(slider_dot, (bar.width / self.max_value * self.current_value, 0))
+        dot.x = bar.width / self.max_value * self.current_value
+        return image, rect, bar, dot
+
+    def update(self, pos1, mode, pos2=None):
+        global settings
+        x, y = pos1
+        if mode == 'down':
+            if self.dot.x <= x <= self.dot.x + self.dot.width and self.dot.y <= y <= self.dot.y + self.dot.height:
+                self.is_active = True
+                return True
+            return False
+        elif mode == 'move' and self.is_active:
+            x_after, y_after = pos2
+            if self.bar.x <= x_after <= self.bar.x + self.bar.width:
+                self.current_value = int((x_after - self.bar.x) / (self.bar.width / self.max_value))
+            elif x_after > self.bar.x + self.bar.width:
+                self.current_value = self.max_value
+            else:
+                self.current_value = 0
+            self.__init__(self.pos[0], self.pos[1], self.max_value, self.item,
+                          text=self.text, current=self.current_value)
+            self.is_active = True
+
+    def save_changes(self):
+        if self.is_active:
+            self.is_active = False
+            if ut.old_settings[self.item] != self.current_value:
+                ut.settings[self.item] = self.current_value
+                return True  # возвращает, изменились ли настроки
+
+    def draw_text(self):
+        if self.text['center']:
+            text = ut.get_text(f'{(self.current_value + 40) * 16}:{(self.current_value + 40) * 9}',
+                               (50, 36, 11), font='../data/Berlin-Sans-FB-Demi-Font.ttf',
+                               font_size=int(self.text['size'] * ut.factor_x))
+        else:
+            text = ut.get_text(str(self.current_value), (50, 36, 11),
+                               font='../data/Berlin-Sans-FB-Demi-Font.ttf',
+                               font_size=int(self.text['size'] * ut.factor_x))
+        if self.text['center']:
+            ut.screen.blit(text, (self.text['x'] * ut.factor_x - text.get_width() // 2, self.text['y'] * ut.factor_x))
+        else:
+            ut.screen.blit(text, (self.text['x'] * ut.factor_x, self.text['y'] * ut.factor_x))
 
 
 # Класс всплывающего окна, используется для диалогов, паузы и т.д (от него следует наследоваться)
 class Popup:
     def __init__(self, blackout, color):
-        self.popup_layer = pygame.sprite.Group()
+        self.popup_layer = pg.sprite.Group()
         self.last_frame = None
         self.buttons = []
         self.active = False
 
-        self.background = pygame.Surface(screen.get_size())
+        self.background = pg.Surface(ut.size)
         self.background.fill(color)
         self.background.set_alpha(blackout)
 
@@ -67,7 +145,7 @@ class Popup:
 
     def set_active(self, screen):
         self.active = True
-        self.last_frame = pygame.Surface(screen.get_size())
+        self.last_frame = pg.Surface(ut.size)
         self.last_frame.blit(screen, (0, 0))
 
 
@@ -83,9 +161,9 @@ class Dialog(Popup):
         self.y = y_activation
 
         for answer in enumerate(self.answers):
-            button = load_image('buttons/Empty.png', 'MENU')
+            button = ut.load_image('buttons/Empty.png', 'MENU')
 
-            font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf', int(50 * FACTOR_X))
+            font = pg.font.Font('../data/DoubleBass-Regular-trial.ttf', int(50 * ut.factor_x))
             text = font.render(answer[1], 1, (208, 185, 14))
             text_w = text.get_width()
             text_h = text.get_height()
@@ -93,7 +171,7 @@ class Dialog(Popup):
             text_y = button.get_rect().height * 0.5 - text_h // 2
             button.blit(text, (text_x, text_y))
 
-            self.buttons.append(Button(WIDTH * 0.05, 50 + 250 * answer[0], answer[1],
+            self.buttons.append(Button(ut.width * 0.05, 50 + 250 * answer[0], answer[1],
                                        button, self.popup_layer))
 
     # Функция возвращает, является ли точка в радиусе активации анимации
@@ -103,15 +181,15 @@ class Dialog(Popup):
     def draw_popup(self, screen):
         super().draw_popup(screen)
 
-        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT)))
-        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT)))
+        pg.draw.rect(screen, (208, 185, 14), ((0, ut.height * 0.72), (ut.width, ut.height)))
+        pg.draw.rect(screen, (50, 36, 11), ((0, ut.height * 0.75), (ut.width, ut.height)))
 
         self.popup_layer.draw(screen)
 
-        font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf', 40)
+        font = pg.font.Font('../data/DoubleBass-Regular-trial.ttf', 40)
         text = font.render(self.question, 1, (208, 185, 14))
-        text_x = WIDTH * 0.5 - text.get_width() // 2
-        text_y = HEIGHT * 0.85 - text.get_height() // 2
+        text_x = ut.width * 0.5 - text.get_width() // 2
+        text_y = ut.height * 0.85 - text.get_height() // 2
         screen.blit(text, (text_x, text_y))
 
 
@@ -120,83 +198,81 @@ class Pause(Popup):
     def __init__(self):
         super().__init__(150, (0, 0, 0))
         self.buttons.append(Button(1920 / 2 - 180, 1080 / 2.5 - 180, 'return',
-                                   load_image('buttons/ReturnToGame.png', 'MENU'), self.popup_layer))
-        self.buttons.append(Button(1920 / 2 + 400 - 140, 1080 / 2.5 - 121, 'start_screen',
-                                   load_image('buttons/Over.png', 'MENU'), self.popup_layer))
+                                   ut.load_image('buttons/ReturnToGame.png', 'MENU'), self.popup_layer))
+        self.buttons.append(Button(1920 / 2 + 400 - 140, 1080 / 2.5 - 121, 'select_save',
+                                   ut.load_image('buttons/Over.png', 'MENU'), self.popup_layer))
         self.buttons.append(Button(1920 / 2 - 400 - 140, 1080 / 2.5 - 121, 'settings',
-                                   load_image('buttons/Settings.png', 'MENU'), self.popup_layer))
+                                   ut.load_image('buttons/Settings.png', 'MENU'), self.popup_layer))
 
     def draw_popup(self, screen):
         super().draw_popup(screen)
 
-        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT)))
-        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT)))
+        pg.draw.rect(screen, (208, 185, 14), ((0, ut.height * 0.72), (ut.width, ut.height)))
+        pg.draw.rect(screen, (50, 36, 11), ((0, ut.height * 0.75), (ut.width, ut.height)))
         self.popup_layer.draw(screen)
 
-        font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf',
-                                int(100 * FACTOR_X))
-        text = font.render('ИГРА ОСТАНОВЛЕНА', 1, (205, 185, 3))
-        text_x = WIDTH * 0.5 - text.get_width() // 2
-        text_y = HEIGHT * 0.85 - text.get_height() // 2
-        screen.blit(text, (text_x, text_y))
+        text = ut.get_text('ИГРА ОСТАНОВЛЕНА', (205, 185, 3),
+                           font='../data/DoubleBass-Regular-trial.ttf',
+                           font_size=int(100 * ut.factor_x))
+        screen.blit(text, (ut.width * 0.5 - text.get_width() // 2, ut.height * 0.85 - text.get_height() // 2))
 
 
-class EndGame(Popup, pygame.sprite.Sprite):
+class EndGame(Popup, pg.sprite.Sprite):
     def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self, all_sprites, top_layer)
+        pg.sprite.Sprite.__init__(self, ut.all_sprites, ut.top_layer)
         Popup.__init__(self, 100, (255, 255, 255))
-        self.image = load_image('images/flag.png')
-        self.image = pygame.transform.scale(self.image, (100 * 0.58, 100 * 0.58))  # (100 * FACTOR_X, 100 * FACTOR_Y)
+        self.image = ut.load_image('images/flag.png')
+        self.image = pg.transform.scale(self.image, (100 * 0.58, 100 * 0.58))  # (100 * FACTOR_X, 100 * FACTOR_Y)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
         self.buttons.append(Button(1920 / 2 + 200 - 140, 1080 / 2.5 - 121, 'start_screen',
-                                   load_image('buttons/Over.png', 'MENU'), self.popup_layer))
+                                   ut.load_image('buttons/Over.png', 'MENU'), self.popup_layer))
         self.buttons.append(Button(1920 / 2 - 200 - 140, 1080 / 2.5 - 121, 'quit',
-                                   load_image('buttons/Off.png', 'MENU'), self.popup_layer))
+                                   ut.load_image('buttons/Off.png', 'MENU'), self.popup_layer))
 
     def draw_popup(self, screen):
         super().draw_popup(screen)
 
-        pygame.draw.rect(screen, (208, 185, 14), ((0, HEIGHT * 0.72), (WIDTH, HEIGHT)))
-        pygame.draw.rect(screen, (50, 36, 11), ((0, HEIGHT * 0.75), (WIDTH, HEIGHT)))
+        pg.draw.rect(screen, (208, 185, 14), ((0, ut.height * 0.72), (ut.width, ut.height)))
+        pg.draw.rect(screen, (50, 36, 11), ((0, ut.height * 0.75), (ut.width, ut.height)))
         self.popup_layer.draw(screen)
 
-        font = pygame.font.Font('../data/DoubleBass-Regular-trial.ttf',
-                                int(100 * FACTOR_X))
+        font = pg.font.Font('../data/DoubleBass-Regular-trial.ttf',
+                            int(100 * ut.factor_x))
         text = font.render('ИГРА ПРОЙДЕНА', 1, (205, 185, 3))
-        text_x = WIDTH * 0.5 - text.get_width() // 2
-        text_y = HEIGHT * 0.85 - text.get_height() // 2
+        text_x = ut.width * 0.5 - text.get_width() // 2
+        text_y = ut.height * 0.85 - text.get_height() // 2
         screen.blit(text, (text_x, text_y))
 
 
 # Класс шестерёнки (это из экрана Settings)
-class Gearwheel(pygame.sprite.Sprite):
+class Gearwheel(pg.sprite.Sprite):
     def __init__(self):
-        super().__init__(all_sprites, mid_layer)
-        self.image = load_image('settings UI/1.png', 'MENU')
+        super().__init__(ut.all_sprites, ut.mid_layer)
+        self.image = ut.load_image('settings UI/1.png', 'MENU')
         self.rect = self.image.get_rect()
-        self.rect.x = 1150 * FACTOR_X
-        self.rect.y = 280 * FACTOR_Y
+        self.rect.x = 1150 * ut.factor_x
+        self.rect.y = 280 * ut.factor_y
         self.current = 1
 
     def update(self):
         self.current = (self.current % 4) + 1
         if self.current == 4:
-            self.rect.y = 274 * FACTOR_Y
+            self.rect.y = 274 * ut.factor_y
         else:
-            self.rect.y = 270 * FACTOR_Y
-        self.image = load_image(f'settings UI/{self.current}.png', 'MENU')
+            self.rect.y = 270 * ut.factor_y
+        self.image = ut.load_image(f'settings UI/{self.current}.png', 'MENU')
 
 
 # Класс арт (это из экрана Select save, производит анимацию парения (вверх/вниз)
-class Art(pygame.sprite.Sprite):
+class Art(pg.sprite.Sprite):
     def __init__(self, image, x, y):
-        super().__init__(all_sprites, mid_layer)
+        super().__init__(ut.all_sprites, ut.mid_layer)
         self.image = image
         self.rect = self.image.get_rect()
-        self.rect.x = x * FACTOR_X
-        self.rect.y = y * FACTOR_Y
+        self.rect.x = x * ut.factor_x
+        self.rect.y = y * ut.factor_y
 
         self.vector = choice([-1, 1])
         self.amplitude = randint(self.rect.height // 15, self.rect.height // 12)
@@ -209,29 +285,29 @@ class Art(pygame.sprite.Sprite):
 
 
 # Класс облака (это из экрана Start screen, движется туда/сюда)
-class Cloud(pygame.sprite.Sprite):
+class Cloud(pg.sprite.Sprite):
     def __init__(self, vector):
-        super().__init__(all_sprites, mid_layer)
-        self.image = choice([load_image('menu UI/Cloud 1.png', 'MENU'),
-                             load_image('menu UI/Cloud 2.png', 'MENU')])
+        super().__init__(ut.all_sprites, ut.mid_layer)
+        self.image = choice([ut.load_image('menu UI/Cloud 1.png', 'MENU'),
+                             ut.load_image('menu UI/Cloud 2.png', 'MENU')])
         self.move_factor = uniform(0.9, 1.5)
         self.vector = vector
-        self.image = pygame.transform.flip(self.image, choice([True, False]), False)
+        self.image = pg.transform.flip(self.image, choice([True, False]), False)
         self.image.set_alpha(100)
         self.rect = self.image.get_rect()
         if self.vector == -1:
-            self.rect.x = WIDTH
+            self.rect.x = ut.width
         if self.vector == 1:
             self.rect.x = -20
-        self.rect.y = randint(0 + 20, HEIGHT - self.rect.height)
+        self.rect.y = randint(0 + 20, ut.height - self.rect.height)
 
     def update(self):
-        self.rect.x += self.vector * self.move_factor * 60 / fps
-        if WIDTH + 20 < self.rect.x or self.rect.x < 0 - 40:
+        self.rect.x += self.vector * self.move_factor * 60 / ut.fps
+        if ut.width + 20 < self.rect.x or self.rect.x < 0 - 40:
             self.__init__(self.vector)
 
 
-class BgCloud(pygame.sprite.Sprite):
+class BgCloud(pg.sprite.Sprite):
     def __init__(self, group, clouds, screen_width, screen_height):
         super().__init__(group)
         self.image = choice(clouds)
@@ -246,7 +322,7 @@ class BgCloud(pygame.sprite.Sprite):
             self.rect.x = -self.rect.width
         else:  # Спавн справа
             self.rect.x = self.screen_width
-            self.image = pygame.transform.flip(self.image, True, False)  # Отразить облако
+            self.image = pg.transform.flip(self.image, True, False)  # Отразить облако
 
         self.rect.y = randint(0, self.screen_height - self.rect.height)  # Высота спавна
 
@@ -263,9 +339,11 @@ class BgCloud(pygame.sprite.Sprite):
 
 
 # Класс корабля (это из экрана Start screen, движется туда/сюда + поворачивает объект)
-class Ship(pygame.sprite.Sprite):
+class Ship(pg.sprite.Sprite):
     def __init__(self, vector, width, height, group):
-        super().__init__(all_sprites, group)
+        super().__init__(ut.all_sprites, group)
+        ship1_image = ut.load_image('menu UI/Ship 1.png', 'MENU')
+        ship2_image = ut.load_image('menu UI/Ship 2.png', 'MENU')
         self.image = choice([ship1_image, ship2_image])
         self.vector = vector
         self.rect = self.image.get_rect()
@@ -276,50 +354,37 @@ class Ship(pygame.sprite.Sprite):
         if self.vector == -1:
             self.rect.x = self.width
             if self.image == ship1_image:
-                self.image = pygame.transform.flip(self.image, True, False)
+                self.image = pg.transform.flip(self.image, True, False)
         if self.vector == 1:
             self.rect.x = 0
             if self.image == ship2_image:
-                self.image = pygame.transform.flip(self.image, True, False)
-        self.rect.y = randint(0, self.height - self.rect.height * 2)
+                self.image = pg.transform.flip(self.image, True, False)
+        # self.rect.y = randint(0, self.height - self.rect.height * 2)
 
     def update(self):
-        self.rect.x += self.vector * self.move_factor * 60 / fps
+        self.rect.x += self.vector * self.move_factor * 60 / ut.fps
         if self.width + 10 < self.rect.x or self.rect.x < 0:
             self.__init__(self.vector, self.width, self.height, self.group)
 
 
 # Класс горы (это из экрана Start screen, статичное говно)
-class Mountain(pygame.sprite.Sprite):
+class Mountain(pg.sprite.Sprite):
     def __init__(self):
-        super().__init__(all_sprites, mid_layer)
-        self.image = load_image('menu UI/Mountain.png', 'MENU')
+        super().__init__(ut.all_sprites, ut.mid_layer)
+        self.image = ut.load_image('menu UI/Mountain.png', 'MENU')
         self.rect = self.image.get_rect()
-        self.rect.x = 1096 * FACTOR_X
-        self.rect.y = 569 * FACTOR_Y
+        self.rect.x = 1096 * ut.factor_x
+        self.rect.y = 569 * ut.factor_y
 
 
 # Класс заднего фона (можно использовать где угодно)
-class Background(pygame.sprite.Sprite):
+class Background(pg.sprite.Sprite):
     def __init__(self, image, x, y, group):
-        super().__init__(all_sprites, group)
+        super().__init__(ut.all_sprites, group)
         self.image = image
         self.rect = self.image.get_rect()
-        self.rect.x = x * FACTOR_X
-        self.rect.y = y * FACTOR_Y
-
-
-# Класс платформы, перенесено из main
-class Platform(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, width, height, group):
-        super().__init__(group)
-        self.image = pygame.Surface((width * FACTOR_X, height * FACTOR_Y), pygame.SRCALPHA)
-        self.image.fill((255, 255, 255))
-        # self.image.fill((50, 36, 11), (10, 10, width, height))
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect()
-        self.rect.x = pos_x * FACTOR_X
-        self.rect.y = pos_y * FACTOR_Y
+        self.rect.x = x * ut.factor_x
+        self.rect.y = y * ut.factor_y
 
 
 class Event:
@@ -332,10 +397,10 @@ class Event:
         self.start_time = None
 
     def time_check(self):
-        return pygame.time.get_ticks() - self.last_activation >= self.cooldown
+        return pg.time.get_ticks() - self.last_activation >= self.cooldown
 
     def activation(self):
-        current_time = pygame.time.get_ticks()
+        current_time = pg.time.get_ticks()
         self.is_active = True
         self.last_activation = current_time
         self.start_time = current_time
@@ -344,9 +409,9 @@ class Event:
         return self.is_active
 
 
-class Health(pygame.sprite.Sprite):
+class Health(pg.sprite.Sprite):
     def __init__(self, max_health, indent, size_factor):
-        super().__init__(all_sprites, top_layer)
+        super().__init__(ut.all_sprites, ut.top_layer)
 
         self.current_health = max_health  # текущее здоровье
         self.max = max_health  # максимальное здоровье
@@ -361,15 +426,15 @@ class Health(pygame.sprite.Sprite):
     def update_image(self):
         if self.current_health > 0:
             size_width = ceil(self.current_health / 2) * 135 + self.indent * ceil(self.current_health / 2) - self.indent
-            self.image = pygame.Surface((size_width, 114))
+            self.image = pg.Surface((size_width, 114))
             self.rect = self.image.get_rect()
             self.rect.x = 20
             for heart in range(int(self.current_health) // 2):
-                self.image.blit(load_image('images/full hp.png'), (heart * 135 + heart * self.indent, 0))
+                self.image.blit(ut.load_image('images/health/full hp.png'), (heart * 135 + heart * self.indent, 0))
             if self.current_health % 2 == 1:
-                self.image.blit(load_image('images/half hp.png'), (self.rect.width - 135, 0))
-            self.image = pygame.transform.scale(self.image,
-                                                (size_width * self.factor * 0.9, 114 * self.factor))
+                self.image.blit(ut.load_image('images/health/half hp.png'), (self.rect.width - 135, 0))
+            self.image = pg.transform.scale(self.image,
+                                            (size_width * self.factor * 0.9, 114 * self.factor))
             self.image.set_colorkey((0, 0, 0))
             self.rect = self.image.get_rect()
 
