@@ -9,22 +9,24 @@ from map import Map
 from camera import Camera
 from src.creatures import Player, Enemy
 
+current_location = "City"
 
 # Основной цикл игры
 def game():
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     initialization()
+    global current_location
 
     pygame.mixer.music.stop()  # Останавливаем музыку при начале игры
 
     dream_map = dialogs = creatures_group = enemy = enemy2 = None
-    back_photo = cloud_layer = background_layer = platforms_group = deadly_layer = player = end_game = None
+    back_photo = cloud_layer = background_layer = platforms_group = deadly_layer = player = end_game = next_lvl = None
     rain = []
 
     # Карта: сон
     def dream():
         nonlocal dream_map, dialogs, back_photo, cloud_layer, background_layer, \
-            platforms_group, deadly_layer, player, end_game, creatures_group, enemy, enemy2
+            platforms_group, deadly_layer, player, end_game, creatures_group, enemy, enemy2, next_lvl
         dream_map = Map(screen, "location_one\loco1")
         player_pos = (
             int(dream_map.get_player_start_position()[0]),
@@ -60,6 +62,7 @@ def game():
         enemy = Enemy(creatures_group, player_pos, platforms_group, deadly_layer)
         enemy2 = Enemy(creatures_group, (557, 1138), platforms_group, deadly_layer)
         end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
+        next_lvl = NextLevel(win_flag_pos[0] + 2000, win_flag_pos[1] + 2000) # Не обязателен
 
         # Создаём облака
         for _ in range(10):
@@ -74,7 +77,7 @@ def game():
     # Карта: город
     def city():
         nonlocal dream_map, dialogs, back_photo, cloud_layer, background_layer, \
-            platforms_group, deadly_layer, player, end_game, creatures_group, rain
+            platforms_group, deadly_layer, player, end_game, creatures_group, rain, next_lvl
         city_map = Map(screen, "location_two\loco2")
 
         player_pos = (
@@ -110,10 +113,19 @@ def game():
         pygame.mixer.music.set_volume(0.05)
 
         # Вин поз
-        end_game = EndGame(win_flag_pos[0], win_flag_pos[1])
+        end_game = EndGame(win_flag_pos[0] + 500, win_flag_pos[1] + 500) # Обязателен для меню, но на карте не нужен
+        next_lvl = NextLevel(win_flag_pos[0], win_flag_pos[1])
 
-    dream()
-    # city()
+        dialogs = [Dialog('О, привет, сынок',
+                          3128 - 300,
+                          1512,
+                          100 * FACTOR_X,
+                          'Куда ты так поздно?', 'И куда ты?')]
+
+    if current_location == "City":
+        city()
+    else:
+        dream()
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pygame.Surface(screen.get_size())
@@ -142,7 +154,9 @@ def game():
                 return start_screen
             elif end_game_log == 'quit':
                 return 'close'
-
+        if pygame.sprite.collide_mask(player, next_lvl):
+            current_location = "Dream"
+            return game
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return 'close'
@@ -258,6 +272,18 @@ def game():
             cur_dialog = None
             if answer == 'quit':
                 return 'close'
+            if answer == "Куда ты так поздно?" or answer == "И куда ты?":
+                dialogs = [Dialog('Сам же знаешь. На работу',
+                          3128 - 300,
+                          1512,
+                          100 * FACTOR_X,
+                          'Опять переработки?', 'Как много работы')]
+            if answer == "Опять переработки?" or answer == "Как много работы":
+                dialogs = [Dialog('Ну, а что поделать? Ладно, я побежала, бязательно поешь!',
+                          3128 - 300,
+                          1512,
+                          100 * FACTOR_X,
+                          'Хорошо, пока', 'Окей, увидимся')]
         # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
 
         pygame.display.flip()
