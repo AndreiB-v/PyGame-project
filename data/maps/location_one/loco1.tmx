@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.1" orientation="orthogonal" renderorder="right-down" width="150" height="150" tilewidth="16" tileheight="16" infinite="0" nextlayerid="9" nextobjectid="16">
+<map version="1.10" tiledversion="1.11.1" orientation="orthogonal" renderorder="right-down" width="150" height="150" tilewidth="16" tileheight="16" infinite="0" nextlayerid="9" nextobjectid="28">
  <tileset firstgid="1" source="tileset2.tsx"/>
  <tileset firstgid="1161" source="tileset1.tsx"/>
  <tileset firstgid="1359" source="tiles3.tsx"/>
@@ -29,5 +29,13 @@
   <object id="13" name="player" type="player" x="1391.33" y="758.667"/>
   <object id="14" name="umiko" type="umiko" x="557" y="1138"/>
   <object id="15" name="win" type="win" x="1940.67" y="1956.33"/>
+  <object id="16" name="monster" type="monster" x="1527" y="759"/>
+  <object id="19" name="monster" type="monster" x="626" y="1090"/>
+  <object id="22" name="monster" type="monster" x="1204" y="1422"/>
+  <object id="23" name="monster" type="monster" x="1421" y="1410"/>
+  <object id="24" name="monster" type="monster" x="878" y="1438"/>
+  <object id="25" name="monster" type="monster" x="2093" y="402"/>
+  <object id="26" name="monster" type="monster" x="1230" y="1968"/>
+  <object id="27" name="monster" type="monster" x="1030" y="1957"/>
  </objectgroup>
 </map>

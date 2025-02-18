@@ -247,6 +247,16 @@ class EndGame(Popup, pg.sprite.Sprite):
         screen.blit(text, (text_x, text_y))
 
 
+class NextLevel(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(all_sprites, mid_layer)
+        self.image = load_image('images/flag.png')
+        self.image = pygame.transform.scale(self.image, (100 * 0.58, 100 * 0.58))  # (100 * FACTOR_X, 100 * FACTOR_Y)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+
 # Класс шестерёнки (это из экрана Settings)
 class Gearwheel(pg.sprite.Sprite):
     def __init__(self):
