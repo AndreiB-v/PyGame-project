@@ -247,11 +247,11 @@ class EndGame(Popup, pg.sprite.Sprite):
         screen.blit(text, (text_x, text_y))
 
 
-class NextLevel(pygame.sprite.Sprite):
+class NextLevel(pg.sprite.Sprite):
     def __init__(self, x, y):
-        super().__init__(all_sprites, mid_layer)
-        self.image = load_image('images/flag.png')
-        self.image = pygame.transform.scale(self.image, (100 * 0.58, 100 * 0.58))  # (100 * FACTOR_X, 100 * FACTOR_Y)
+        super().__init__(ut.all_sprites, ut.mid_layer)
+        self.image = ut.load_image('images/flag.png')
+        self.image = pg.transform.scale(self.image, (100 * 0.58, 100 * 0.58))  # (100 * FACTOR_X, 100 * FACTOR_Y)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -358,14 +358,14 @@ class Drop:
         c = self.size * 12 + 5
         self.color = (c, c, c)
 
-    def update(self):
+    def update(self, *args, **kwargs):
         self.y += self.size * 2
 
         if self.y > self.height:
             self.y = randint(-self.height, 0)
 
     def draw(self):
-        pygame.draw.line(screen, self.color, (self.x, self.y), (self.x, self.y + self.size), width=self.size // 10)
+        pg.draw.line(ut.screen, self.color, (self.x, self.y), (self.x, self.y + self.size), width=self.size // 10)
 
 
 # Класс корабля (это из экрана Start screen, движется туда/сюда + поворачивает объект)
