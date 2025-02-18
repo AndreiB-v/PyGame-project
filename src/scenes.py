@@ -135,7 +135,8 @@ def get_city_save(cur=None):
     city_map = Map(ut.screen, "location_two/loco2")
     map_groups = city_map.get_groups()
 
-    groups = {'background_layer': map_groups[0],  # Бэкграунд
+    groups = {'back_photo': pg.sprite.Group(),
+              'background_layer': map_groups[0],  # Бэкграунд
               'platforms_group': map_groups[1],  # Группа платформ
               'deadly_layer': map_groups[2],  # Смертельные блоки
               'creatures_group': pg.sprite.Group()}  # Все существа
@@ -144,7 +145,7 @@ def get_city_save(cur=None):
     # Создаём дождь
     for _ in range(1000):
         rain.append(obj.Drop(city_map.width * 16, city_map.height * 16))
-    obj.Background(ut.load_image("maps/location_two/assets/background.png"), 0, 0, groups['background_layer'])
+    obj.Background(ut.load_image("maps/location_two/assets/background.png"), 0, 0, groups['back_photo'])
     dialogs, player = get_save(location_id, groups, cur)
 
     return groups, dialogs, player, None, rain
@@ -225,7 +226,7 @@ def game():
             return get_city_save()
 
     groups, dialogs, player, skeletons, rain = init_save()
-    next_lvl = obj.NextLevel(3103.34, 1541.33)
+    next_lvl = obj.NextLevel(1541.33, 3103.34)
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pg.Surface(ut.screen.get_size(), pg.SRCALPHA)
