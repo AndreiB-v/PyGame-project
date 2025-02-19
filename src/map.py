@@ -68,7 +68,7 @@ class Map:
         result = []
         for obj in self.tmx_data.objects:
             if obj.type == "monster":
-                result.append((obj.x, obj.x))
+                result.append((obj.x, obj.y))
         if result:
             return result
         return None

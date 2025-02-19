@@ -43,7 +43,7 @@ class Slider(pg.sprite.Sprite):
     def __init__(self, x, y, max_value, item, text=None, current=None):
         super().__init__(ut.button_layer)
         # для экрана current_value = 40
-        if current:
+        if current is not None:
             self.current_value = current
         else:
             self.current_value = ut.settings[item]
@@ -94,7 +94,7 @@ class Slider(pg.sprite.Sprite):
                 self.current_value = int((x_after - self.bar.x) / (self.bar.width / self.max_value))
             elif x_after > self.bar.x + self.bar.width:
                 self.current_value = self.max_value
-            else:
+            elif x_after < self.bar.x + self.dot.width:
                 self.current_value = 0
             self.__init__(self.pos[0], self.pos[1], self.max_value, self.item,
                           text=self.text, current=self.current_value)
@@ -184,13 +184,14 @@ class Dialog(Popup):
         for answer in enumerate(self.answers):
             button = ut.load_image('buttons/Empty.png', 'MENU')
 
-            font = pg.font.Font('../data/DoubleBass-Regular-trial.ttf', int(50 * ut.factor_x))
-            text = font.render(answer[1], 1, (208, 185, 14))
-            text_w = text.get_width()
-            text_h = text.get_height()
-            text_x = button.get_rect().width * 0.5 - text_w // 2
-            text_y = button.get_rect().height * 0.5 - text_h // 2
-            button.blit(text, (text_x, text_y))
+            text = ut.get_text(answer[1], (208, 185, 14),
+                               font='../data/DoubleBass-Regular-trial.ttf',
+                               font_size=int(50 * ut.factor_x),
+                               rect=((button.get_rect().width - 80 * ut.factor_x),
+                                     (button.get_rect().height - 80 * ut.factor_y)))
+            w, h = text.get_width(), text.get_height()
+            button.blit(text, (button.get_rect().width * 0.5 - w // 2,
+                               button.get_rect().height * 0.5 - h // 2))
 
             self.buttons.append(Button(ut.width * 0.05, 50 + 250 * answer[0], answer[1],
                                        button, self.popup_layer))

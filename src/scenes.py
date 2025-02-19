@@ -52,7 +52,7 @@ def create_city_save(save_id, cur):
     dialogs = [{'question': 'О, привет, сынок',
                 'x': 3128 - 300,
                 'y': 1512,
-                'radius': 100 * ut.factor_x,  # радиус активации
+                'radius': 100,  # радиус активации
                 'answers': ['Куда ты так поздно?', 'И куда ты?']}, ]
 
     create_save(cur, dialogs, 'city', save_id=save_id)
@@ -70,15 +70,15 @@ def create_dream_save(player, cur=None):
     dialogs = [{'question': 'Это диалог',
                 'x': int(dream_map.get_umiko_position()[0]),
                 'y': int(dream_map.get_umiko_position()[1]),
-                'radius': 100 * ut.factor_x,  # радиус активации
+                'radius': 100,  # радиус активации
                 'answers': ['да ну', 'ладно...']}, ]
 
     location_id = create_save(cur, dialogs, 'dream', save_id=save_id)
 
-    skeletons = [{'x': int(dream_map.get_player_start_position()[0]),
-                  'y': int(dream_map.get_player_start_position()[1])},
-                 {'x': 557,
-                  'y': 1138}]
+    skeletons = []
+    for x, y in dream_map.get_all_monsters_pos():
+        skeletons.append({'x': x, 'y': y})
+
     for skeleton in skeletons:
         cur.execute('INSERT INTO healths(current_health, max_health, size_factor, indent) VALUES(?, ?, ?, ?)',
                     (10, 10, 0.1, 15))  # Здоровье скелета в сохранении
@@ -197,12 +197,14 @@ def location_save(creatures_group, dialogs, location_name, cur=None):
 def game():
     global last_scene
     last_scene = game
+    end_game = None
 
     # Инициализируем группы (удаляем все объекты, чтобы не рисовать прошлые сцены
     ut.initialization()
 
     def save_return(value):
         location_save(groups['creatures_group'], dialogs, return_current_location())
+        pg.mixer.music.stop()
         return value
 
     # Карта: сон
@@ -217,20 +219,22 @@ def game():
     @ut.create_connect
     def check_dream(player, cur=None):
         if not cur.execute(f'SELECT dream FROM saves WHERE id = ?', (save_id,)).fetchone()[0]:
-            print('here')
             create_dream_save(player)
 
     def init_save():
+        nonlocal end_game
         location = return_current_location()
         if location == 'dream':
+            end_game = obj.EndGame(1940, 1956)
             return get_dream_save()
         else:
+            pg.mixer.music.load("../data/sounds/rain_sound.mp3")
+            pg.mixer.music.play(-1)
+            pg.mixer.music.set_volume(ut.settings['SOUNDS VOLUME'] * 0.01)
             return get_city_save()
 
-    # print(len(init_save()))
     groups, dialogs, player, skeletons, rain = init_save()
     next_lvl = obj.NextLevel(3103, 1541)
-    # (3103, 1541)
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pg.Surface(ut.screen.get_size(), pg.SRCALPHA)
@@ -248,17 +252,20 @@ def game():
     # Создаём камеру, паузу, конец игры
     camera = Camera()
     pause = obj.Pause()
-    end_game = obj.EndGame(1940, 1956)
 
     while True:
-        if pg.sprite.collide_mask(player, end_game):
-            end_game.set_active(ut.screen)
-            end_game_log = ut.render_popup(end_game)
-            if end_game_log in 'start_screen':
-                save_return(start_screen)
-            elif end_game_log == 'quit':
-                return save_return('close')
+        if end_game is not None:
+            if pg.sprite.collide_mask(player, end_game):
+                end_game.set_active(ut.screen)
+                end_game_log = ut.render_popup(end_game)
+                if end_game_log in 'start_screen':
+                    return save_return(start_screen)
+                elif end_game_log == 'quit':
+                    return save_return('close')
         if pg.sprite.collide_mask(player, next_lvl):
+            location_save(groups['creatures_group'], dialogs, return_current_location())
+            pg.mixer.music.stop()
+
             check_dream(player)
             change_location('dream')
             return game
@@ -279,11 +286,13 @@ def game():
                     push = True
                 if event.key == 27:
                     pause.set_active(ut.screen)
+                    pg.mixer.music.pause()
                     pause_log = ut.render_popup(pause)
                     if pause_log in ('select_save', 'settings'):
                         return save_return({'select_save': select_save, 'settings': settings}[pause_log])
                     elif pause_log == 'quit':
                         return save_return('close')
+                    pg.mixer.music.unpause()
             if event.type == pg.KEYUP:
                 if event.key == 101:
                     push = False
@@ -373,13 +382,11 @@ def game():
                 return save_return('close')
             if answer == "Куда ты так поздно?" or answer == "И куда ты?":
                 dialogs.append(obj.Dialog('Сам же знаешь. На работу',
-                                          3128 - 300, 1512,
-                                          100 * ut.factor_x,
+                                          3128 - 300, 1512, 100,
                                           'Опять переработки?', 'Как много работы'))
             if answer == "Опять переработки?" or answer == "Как много работы":
                 dialogs.append(obj.Dialog('Ну, а что поделать? Ладно, я побежала, бязательно поешь!',
-                                          3128 - 300, 1512,
-                                          100 * ut.factor_x,
+                                          3128 - 300, 1512, 100,
                                           'Хорошо, пока', 'Окей, увидимся'))
         # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
 
@@ -446,6 +453,8 @@ def select_save(cur=None):
         buttons.append(obj.Button(381, 160 + 151 * (saves.index(save)), save[0],
                                   ut.load_image(f'buttons/saves/Save {saves.index(save) + 1}.png', 'MENU'),
                                   (ut.all_sprites, ut.button_layer)))
+    buttons.append(obj.Button(350, 0, start_screen, ut.load_image('buttons/BookmarkHome.png', 'MENU'),
+                              (ut.all_sprites, ut.button_layer)))
 
     def plus():
         nonlocal save_count, cur
@@ -458,16 +467,12 @@ def select_save(cur=None):
         buttons.append(obj.Button(381, 160 + 151 * (save_count - 1), save_id,
                                   ut.load_image(f'buttons/saves/Save {save_count}.png', 'MENU'),
                                   (ut.all_sprites, ut.button_layer)))
-        if save_count == 5 and plus_button:
+        if save_count == 5:
             plus_button.kill()
 
-    buttons.append(obj.Button(350, 0, start_screen, ut.load_image('buttons/BookmarkHome.png', 'MENU'),
-                              (ut.all_sprites, ut.button_layer)))
     if save_count < 5:
-        plus_button = buttons.append(obj.Button(549, 834, plus, ut.load_image('buttons/Plus.png', 'MENU'),
-                                                (ut.all_sprites, ut.button_layer)))
-
-    # for save in saves:
+        plus_button = obj.Button(549, 834, plus, ut.load_image('buttons/Plus.png', 'MENU'),
+                                 (ut.all_sprites, ut.button_layer))
 
     bg = obj.Background(ut.load_image('select UI/Background.png', 'MENU'), 0, 0, ut.bottom_layer)
     art1 = obj.Art(ut.load_image('select UI/Cloud 1.png', 'MENU'), 1038, 102)
@@ -484,7 +489,7 @@ def select_save(cur=None):
             if event.type == pg.MOUSEBUTTONDOWN:
                 ut.button_layer.update(event.pos, 'down')
             if event.type == pg.MOUSEBUTTONUP:
-                for func in [button.update(event.pos, 'up') for button in buttons]:
+                for func in [button.update(event.pos, 'up') for button in buttons + [plus_button]]:
                     if func == start_screen:
                         return start_screen
                     elif func.__class__.__name__ == 'int':
