@@ -1,1 +1,6 @@
-{"SIZE FACTOR": 56, "SOUNDS VOLUME": 17, "FPS": 60, "APP BAR": true}
+{
+  "SIZE FACTOR": 40,
+  "SOUNDS VOLUME": 50,
+  "FPS": 60,
+  "APP BAR": false
+}

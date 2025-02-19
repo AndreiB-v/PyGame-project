@@ -38,6 +38,7 @@ class Button(pg.sprite.Sprite):
                 self.rect.y += self.size_factor[1] / 2
 
 
+# Класс слайдера
 class Slider(pg.sprite.Sprite):
     def __init__(self, x, y, max_value, item, text=None, current=None):
         super().__init__(ut.button_layer)
@@ -119,6 +120,25 @@ class Slider(pg.sprite.Sprite):
             ut.screen.blit(text, (self.text['x'] * ut.factor_x - text.get_width() // 2, self.text['y'] * ut.factor_x))
         else:
             ut.screen.blit(text, (self.text['x'] * ut.factor_x, self.text['y'] * ut.factor_x))
+
+
+# Класс кнопки с галочкой...?
+class Checkbox(Button, pg.sprite.Sprite):
+    def __init__(self, x, y, name, groups, function):
+        self.unselect = ut.load_image('settings UI/check_box.png', 'MENU')
+        self.select = ut.load_image('settings UI/select_check_box.png', 'MENU')
+        Button.__init__(self, x, y, ut.settings[name],
+                        {True: self.select, False: self.unselect}[ut.settings[name]], groups)
+        self.name = name
+        self.function = function
+
+    def update(self, *args):
+        change = Button.update(self, *args)
+        if change is not None:
+            ut.settings[self.name] = not ut.settings[self.name]
+            self.backup_image = self.image = {True: self.select, False: self.unselect}[ut.settings[self.name]]
+            ut.update_settings()
+            return self.function
 
 
 # Класс всплывающего окна, используется для диалогов, паузы и т.д (от него следует наследоваться)

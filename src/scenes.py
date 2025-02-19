@@ -38,6 +38,7 @@ def create_save(cur, dialogs, world, save_id=save_id):
                         SELECT MAX(Id), ? FROM dialogs''', (answer,))
 
     # Добавляем локацию в сохранение
+    # print(world)
     cur.execute(f'''UPDATE saves SET {world} = ? WHERE id = ?''', (location_id, save_id))
 
     return location_id
@@ -201,7 +202,7 @@ def game():
     ut.initialization()
 
     def save_return(value):
-        location_save(groups['creatures_group'], dialogs, 'city')
+        location_save(groups['creatures_group'], dialogs, return_current_location())
         return value
 
     # Карта: сон
@@ -215,7 +216,8 @@ def game():
 
     @ut.create_connect
     def check_dream(player, cur=None):
-        if not cur.execute(f'SELECT dream FROM saves WHERE id = ?', (save_id,)).fetchone():
+        if not cur.execute(f'SELECT dream FROM saves WHERE id = ?', (save_id,)).fetchone()[0]:
+            print('here')
             create_dream_save(player)
 
     def init_save():
@@ -225,8 +227,10 @@ def game():
         else:
             return get_city_save()
 
+    # print(len(init_save()))
     groups, dialogs, player, skeletons, rain = init_save()
-    next_lvl = obj.NextLevel(1541.33, 3103.34)
+    next_lvl = obj.NextLevel(3103, 1541)
+    # (3103, 1541)
 
     # ______________ ДИАЛОГИ __________________ #
     screen2 = pg.Surface(ut.screen.get_size(), pg.SRCALPHA)
@@ -255,7 +259,8 @@ def game():
             elif end_game_log == 'quit':
                 return save_return('close')
         if pg.sprite.collide_mask(player, next_lvl):
-            current_location = "Dream"
+            check_dream(player)
+            change_location('dream')
             return game
 
         for event in pg.event.get():
@@ -509,8 +514,8 @@ def settings():
     obj.Background(ut.load_image('settings UI/Background.png', 'MENU'), 0, 0, ut.bottom_layer)  # Задний фон
     obj.Gearwheel()
     buttons = [obj.Button(350, 0, last_scene, ut.load_image('buttons/BookmarkHome.png' if last_scene == start_screen
-                                                            else 'buttons/BookmarkBack.png', 'MENU'),
-                          (ut.all_sprites, ut.button_layer))]
+                                                            else 'buttons/BookmarkBack.png', 'MENU'), ut.button_layer),
+               obj.Checkbox(745, 685, 'APP BAR', ut.button_layer, settings)]
 
     slider_push = False
     sliders = [
@@ -540,6 +545,8 @@ def settings():
                 for func in [button.update(event.pos, 'up') for button in buttons]:
                     if func == last_scene:
                         return last_scene
+                    if func == settings:
+                        return settings
             if event.type == pg.MOUSEMOTION:
                 if slider_push:
                     for slider in sliders:

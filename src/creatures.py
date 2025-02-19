@@ -151,6 +151,8 @@ class Player(Creature):
         self.end_pos = None
         self.dash_speed = 150  # Смещение при рывке
 
+        self.double_jump_available = False  # Разрешаем двойной прыжок
+
         self.damage_count = 0
 
         self.dash_event = Event(200, 500)

@@ -45,8 +45,8 @@ def screen_init():
     # Создается экран, в зависимости от настроек
     if app_bar:
         surface = pg.display.set_mode(size)
-        pg.display.set_caption("Корабли ходят по небу")
         pg.display.set_icon(pg.image.load('../data/images/icon.png'))
+        pg.display.set_caption("Корабли ходят по небу")
     else:
         surface = pg.display.set_mode(size, pg.NOFRAME)
     return surface
@@ -191,7 +191,8 @@ def update_settings():
     size = width, height = 16 * size_factor, 9 * size_factor
     factor_x = width / 1920
     factor_y = height / 1080
-    screen = screen_init()
+    if size_factor - 40 != old_settings['SIZE FACTOR'] or app_bar != old_settings['APP BAR']:
+        screen = screen_init()
     sounds = sounds_init()
 
     old_settings = dict(settings)
