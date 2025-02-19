@@ -6,7 +6,6 @@ from math import sin
 import json
 
 import pygame as pg
-import pygame.display
 
 with open('../settings.json') as file:
     settings = json.load(file)
@@ -40,13 +39,13 @@ def sounds_init():
 
 
 def screen_init():
-    pygame.display.quit()
-    pygame.display.init()
+    pg.display.quit()
+    pg.display.init()
     # Создается экран, в зависимости от настроек
     if app_bar:
         surface = pg.display.set_mode(size)
-        pg.display.set_caption("Корабли ходят по небу")
         pg.display.set_icon(pg.image.load('../data/images/icon.png'))
+        pg.display.set_caption("Корабли ходят по небу")
     else:
         surface = pg.display.set_mode(size, pg.NOFRAME)
     return surface
@@ -171,9 +170,12 @@ def create_connect(func):
     return decorated_func
 
 
-def get_text(text, color=(0, 0, 0), font=None, font_size=50):
-    font = pg.font.Font(font, int(font_size))
-    text_surface = font.render(text, 1, color)
+def get_text(text, color=(0, 0, 0), font=None, font_size=50, rect=(1000, 1000)):
+    init_font = pg.font.Font(font, int(font_size))
+    while init_font.size(text)[0] > rect[0] or init_font.size(text)[1] > rect[1]:
+        font_size -= 1
+        init_font = pg.font.Font(font, int(font_size))
+    text_surface = init_font.render(text, 1, color)
     return text_surface
 
 
@@ -181,6 +183,10 @@ def get_text(text, color=(0, 0, 0), font=None, font_size=50):
 def update_settings():
     global fps, volume, app_bar, size_factor, size, width, height, \
         screen, factor_x, factor_y, old_settings, settings, sounds
+
+    if settings['FPS'] == 0:
+        settings['FPS'] = 1
+
     with open('../settings.json', 'w') as settings_file:
         json.dump(settings, settings_file)
 
@@ -191,7 +197,8 @@ def update_settings():
     size = width, height = 16 * size_factor, 9 * size_factor
     factor_x = width / 1920
     factor_y = height / 1080
-    screen = screen_init()
+    if size_factor - 40 != old_settings['SIZE FACTOR'] or app_bar != old_settings['APP BAR']:
+        screen = screen_init()
     sounds = sounds_init()
 
     old_settings = dict(settings)

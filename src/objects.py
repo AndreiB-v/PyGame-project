@@ -38,11 +38,12 @@ class Button(pg.sprite.Sprite):
                 self.rect.y += self.size_factor[1] / 2
 
 
+# Класс слайдера
 class Slider(pg.sprite.Sprite):
     def __init__(self, x, y, max_value, item, text=None, current=None):
         super().__init__(ut.button_layer)
         # для экрана current_value = 40
-        if current:
+        if current is not None:
             self.current_value = current
         else:
             self.current_value = ut.settings[item]
@@ -93,7 +94,7 @@ class Slider(pg.sprite.Sprite):
                 self.current_value = int((x_after - self.bar.x) / (self.bar.width / self.max_value))
             elif x_after > self.bar.x + self.bar.width:
                 self.current_value = self.max_value
-            else:
+            elif x_after < self.bar.x + self.dot.width:
                 self.current_value = 0
             self.__init__(self.pos[0], self.pos[1], self.max_value, self.item,
                           text=self.text, current=self.current_value)
@@ -119,6 +120,25 @@ class Slider(pg.sprite.Sprite):
             ut.screen.blit(text, (self.text['x'] * ut.factor_x - text.get_width() // 2, self.text['y'] * ut.factor_x))
         else:
             ut.screen.blit(text, (self.text['x'] * ut.factor_x, self.text['y'] * ut.factor_x))
+
+
+# Класс кнопки с галочкой...?
+class Checkbox(Button, pg.sprite.Sprite):
+    def __init__(self, x, y, name, groups, function):
+        self.unselect = ut.load_image('settings UI/check_box.png', 'MENU')
+        self.select = ut.load_image('settings UI/select_check_box.png', 'MENU')
+        Button.__init__(self, x, y, ut.settings[name],
+                        {True: self.select, False: self.unselect}[ut.settings[name]], groups)
+        self.name = name
+        self.function = function
+
+    def update(self, *args):
+        change = Button.update(self, *args)
+        if change is not None:
+            ut.settings[self.name] = not ut.settings[self.name]
+            self.backup_image = self.image = {True: self.select, False: self.unselect}[ut.settings[self.name]]
+            ut.update_settings()
+            return self.function
 
 
 # Класс всплывающего окна, используется для диалогов, паузы и т.д (от него следует наследоваться)
@@ -164,13 +184,14 @@ class Dialog(Popup):
         for answer in enumerate(self.answers):
             button = ut.load_image('buttons/Empty.png', 'MENU')
 
-            font = pg.font.Font('../data/DoubleBass-Regular-trial.ttf', int(50 * ut.factor_x))
-            text = font.render(answer[1], 1, (208, 185, 14))
-            text_w = text.get_width()
-            text_h = text.get_height()
-            text_x = button.get_rect().width * 0.5 - text_w // 2
-            text_y = button.get_rect().height * 0.5 - text_h // 2
-            button.blit(text, (text_x, text_y))
+            text = ut.get_text(answer[1], (208, 185, 14),
+                               font='../data/DoubleBass-Regular-trial.ttf',
+                               font_size=int(50 * ut.factor_x),
+                               rect=((button.get_rect().width - 80 * ut.factor_x),
+                                     (button.get_rect().height - 80 * ut.factor_y)))
+            w, h = text.get_width(), text.get_height()
+            button.blit(text, (button.get_rect().width * 0.5 - w // 2,
+                               button.get_rect().height * 0.5 - h // 2))
 
             self.buttons.append(Button(ut.width * 0.05, 50 + 250 * answer[0], answer[1],
                                        button, self.popup_layer))
@@ -245,6 +266,16 @@ class EndGame(Popup, pg.sprite.Sprite):
         text_x = ut.width * 0.5 - text.get_width() // 2
         text_y = ut.height * 0.85 - text.get_height() // 2
         screen.blit(text, (text_x, text_y))
+
+
+class NextLevel(pg.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(ut.all_sprites, ut.mid_layer)
+        self.image = ut.load_image('images/flag.png')
+        self.image = pg.transform.scale(self.image, (100 * 0.58, 100 * 0.58))  # (100 * FACTOR_X, 100 * FACTOR_Y)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
 
 
 # Класс шестерёнки (это из экрана Settings)
@@ -348,14 +379,14 @@ class Drop:
         c = self.size * 12 + 5
         self.color = (c, c, c)
 
-    def update(self):
+    def update(self, *args, **kwargs):
         self.y += self.size * 2
 
         if self.y > self.height:
             self.y = randint(-self.height, 0)
 
     def draw(self):
-        pygame.draw.line(screen, self.color, (self.x, self.y), (self.x, self.y + self.size), width=self.size // 10)
+        pg.draw.line(ut.screen, self.color, (self.x, self.y), (self.x, self.y + self.size), width=self.size // 10)
 
 
 # Класс корабля (это из экрана Start screen, движется туда/сюда + поворачивает объект)

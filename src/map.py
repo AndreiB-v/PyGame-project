@@ -64,6 +64,16 @@ class Map:
                 return obj.x, obj.y
         return None
 
+    def get_all_monsters_pos(self):
+        result = []
+        for obj in self.tmx_data.objects:
+            if obj.type == "monster":
+                result.append((obj.x, obj.y))
+        if result:
+            return result
+        return None
+
+
     def get_groups(self):
         return self.all_sprites, self.platforms_group, self.die_block_group, self.background_color_group
 
