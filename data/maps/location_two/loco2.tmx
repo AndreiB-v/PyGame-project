@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.1" orientation="orthogonal" renderorder="right-down" width="250" height="150" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="3">
+<map version="1.10" tiledversion="1.11.1" orientation="orthogonal" renderorder="right-down" width="250" height="150" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="4">
  <tileset firstgid="1" source="Tiles.tsx"/>
  <tileset firstgid="55" source="Buildings.tsx"/>
  <tileset firstgid="430" source="SCS_Building_04_Red_Nighttime_01.tsx"/>
@@ -29,5 +29,6 @@
  <objectgroup id="4" name="player">
   <object id="1" name="player" type="player" x="920" y="1543"/>
   <object id="2" name="win" type="win" x="3103.34" y="1541.33"/>
+  <object id="3" name="mother" type="mother" x="2828" y="1530"/>
  </objectgroup>
 </map>

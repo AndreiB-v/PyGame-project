@@ -58,6 +58,11 @@ class Map:
                 return obj.x, obj.y
         return None
 
+    def get_mother(self):
+        for obj in self.tmx_data.objects:
+            if obj.type == 'mother':
+                return obj.x, obj.y
+
     def get_win_flag_position(self):
         for obj in self.tmx_data.objects:
             if obj.type == 'win':
