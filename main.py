@@ -1,9 +1,9 @@
-import scenes
+import src.scenes as sc
 import pygame as pg
 
 if __name__ == "__main__":
     # Задаем 'логи экрана', то есть screen_log содержит функцию исполняемой сцены scenes
-    screen_log = scenes.start_screen()
+    screen_log = sc.start_screen()
     # Каждая функция из scenes возвращает функцию следующей сцены
     while screen_log != 'close':
         screen_log = screen_log()

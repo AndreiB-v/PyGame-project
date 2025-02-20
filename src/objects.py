@@ -1,9 +1,8 @@
-from asyncore import write
 from math import ceil
 from random import choice, randint, uniform
-
 import pygame as pg
-import utils as ut
+
+import src.utils as ut
 
 
 # Класс кнопки
@@ -112,14 +111,12 @@ class Slider(pg.sprite.Sprite):
             text = ut.get_text(f'{(self.current_value + 40) * 16}:{(self.current_value + 40) * 9}',
                                (50, 36, 11), font='../data/Berlin-Sans-FB-Demi-Font.ttf',
                                font_size=int(self.text['size'] * ut.factor_x))
+            ut.screen.blit(text, (self.text['x'] * ut.factor_x - text.get_width() // 2, self.text['y'] * ut.factor_y))
         else:
             text = ut.get_text(str(self.current_value), (50, 36, 11),
                                font='../data/Berlin-Sans-FB-Demi-Font.ttf',
                                font_size=int(self.text['size'] * ut.factor_x))
-        if self.text['center']:
-            ut.screen.blit(text, (self.text['x'] * ut.factor_x - text.get_width() // 2, self.text['y'] * ut.factor_x))
-        else:
-            ut.screen.blit(text, (self.text['x'] * ut.factor_x, self.text['y'] * ut.factor_x))
+            ut.screen.blit(text, (self.text['x'] * ut.factor_x, self.text['y'] * ut.factor_y))
 
 
 # Класс кнопки с галочкой...?
@@ -189,9 +186,8 @@ class Dialog(Popup):
                                font_size=int(50 * ut.factor_x),
                                rect=((button.get_rect().width - 80 * ut.factor_x),
                                      (button.get_rect().height - 80 * ut.factor_y)))
-            w, h = text.get_width(), text.get_height()
-            button.blit(text, (button.get_rect().width * 0.5 - w // 2,
-                               button.get_rect().height * 0.5 - h // 2))
+            button.blit(text, (button.get_rect().width * 0.5 - text.get_width() // 2,
+                               button.get_rect().height * 0.5 - text.get_height() // 2))
 
             self.buttons.append(Button(ut.width * 0.05, 50 + 250 * answer[0], answer[1],
                                        button, self.popup_layer))
@@ -207,12 +203,12 @@ class Dialog(Popup):
         pg.draw.rect(screen, (50, 36, 11), ((0, ut.height * 0.75), (ut.width, ut.height)))
 
         self.popup_layer.draw(screen)
+        text = ut.get_text(self.question, (208, 185, 14),
+                           font='../data/DoubleBass-Regular-trial.ttf',
+                           font_size=40, rect=(ut.width - 50, ut.height - ut.height * 0.72))
 
-        font = pg.font.Font('../data/DoubleBass-Regular-trial.ttf', 40)
-        text = font.render(self.question, 1, (208, 185, 14))
-        text_x = ut.width * 0.5 - text.get_width() // 2
-        text_y = ut.height * 0.85 - text.get_height() // 2
-        screen.blit(text, (text_x, text_y))
+        screen.blit(text, (ut.width * 0.5 - text.get_width() // 2,
+                           ut.height * 0.85 - text.get_height() // 2))
 
 
 # Класс паузы
@@ -235,12 +231,14 @@ class Pause(Popup):
 
         text = ut.get_text('ИГРА ОСТАНОВЛЕНА', (205, 185, 3),
                            font='../data/DoubleBass-Regular-trial.ttf',
-                           font_size=int(100 * ut.factor_x))
-        screen.blit(text, (ut.width * 0.5 - text.get_width() // 2, ut.height * 0.85 - text.get_height() // 2))
+                           font_size=int(100 * ut.factor_x),
+                           rect=(ut.width - 50, ut.height - ut.height * 0.72))
+        screen.blit(text, (abs(ut.width - text.get_width()) // 2,
+                           ut.height * 0.85 - text.get_height() // 2))
 
 
 class EndGame(Popup, pg.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, save_id):
         pg.sprite.Sprite.__init__(self, ut.all_sprites, ut.top_layer)
         Popup.__init__(self, 100, (255, 255, 255))
         self.image = ut.load_image('images/flag.png')
@@ -253,19 +251,34 @@ class EndGame(Popup, pg.sprite.Sprite):
         self.buttons.append(Button(1920 / 2 - 200 - 140, 1080 / 2.5 - 121, 'quit',
                                    ut.load_image('buttons/Off.png', 'MENU'), self.popup_layer))
 
+        self.save_id = save_id
+
     def draw_popup(self, screen):
+        from src.interaction_bd import get_killed_monsters
         super().draw_popup(screen)
 
         pg.draw.rect(screen, (208, 185, 14), ((0, ut.height * 0.72), (ut.width, ut.height)))
         pg.draw.rect(screen, (50, 36, 11), ((0, ut.height * 0.75), (ut.width, ut.height)))
         self.popup_layer.draw(screen)
 
-        font = pg.font.Font('../data/DoubleBass-Regular-trial.ttf',
-                            int(100 * ut.factor_x))
-        text = font.render('ИГРА ПРОЙДЕНА', 1, (205, 185, 3))
-        text_x = ut.width * 0.5 - text.get_width() // 2
-        text_y = ut.height * 0.85 - text.get_height() // 2
-        screen.blit(text, (text_x, text_y))
+        text1 = ut.get_text(['количество убитых монстров: ', get_killed_monsters(self.save_id)], (205, 185, 3),
+                            font=['../data/DoubleBass-Regular-trial.ttf', '../data/Berlin-Sans-FB-Demi-Font.ttf'],
+                            font_size=20,
+                            rect=(ut.width - 50, ut.height - ut.height * 0.72))
+
+        text2 = ut.get_text('ВЫ ВЫБРАЛИСЬ ИЗ СНА, ТЕМ САМЫМ ПРОЙДЯ ИГРУ!', (205, 185, 3),
+                            font='../data/DoubleBass-Regular-trial.ttf',
+                            font_size=100 * ut.factor_x,
+                            rect=(ut.width - 50, ut.height - ut.height * 0.72))
+
+        w = max([text1.get_width(), text2.get_width()])
+        h = text1.get_height() + text2.get_height() + 10
+        text = pg.Surface((w, h), pg.SRCALPHA)
+        text.blit(text1, (abs(w - text1.get_width()) // 2, 0))
+        text.blit(text2, (abs(w - text2.get_width()) // 2, text1.get_height() + 10))
+
+        screen.blit(text, (abs(ut.width - text.get_width()) // 2,
+                           ut.height * 0.85 - text.get_height() // 2))
 
 
 class NextLevel(pg.sprite.Sprite):

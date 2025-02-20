@@ -1,6 +1,5 @@
 import pygame
-
-import utils as ut
+import src.utils as ut
 
 
 class Camera:
@@ -13,9 +12,10 @@ class Camera:
 
     def draw_group(self, group, screen):
         for sprite in group:
-            offset_x = sprite.rect.x - self.preview_rect.x
-            offset_y = sprite.rect.y - self.preview_rect.y
-            screen.blit(sprite.image, (offset_x, offset_y))
+            if sprite.rect is not None:
+                offset_x = sprite.rect.x - self.preview_rect.x
+                offset_y = sprite.rect.y - self.preview_rect.y
+                screen.blit(sprite.image, (offset_x, offset_y))
 
     def x(self):
         return self.preview_rect.x

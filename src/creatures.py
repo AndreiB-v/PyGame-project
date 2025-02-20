@@ -1,13 +1,13 @@
 from random import randint
-
-import pygame
+import pygame as pg
 
 from src.animation import Animation
 from src.objects import Event, Health
-import utils as ut
+import src.utils as ut
+import src.scenes as sc
 
 
-class Creature(pygame.sprite.Sprite):
+class Creature(pg.sprite.Sprite):
     def __init__(self, group, pos, platforms_group, deadly_layer, hp, hp_factor):
         super().__init__(group)
         self.groups = group
@@ -58,17 +58,17 @@ class Creature(pygame.sprite.Sprite):
             self.is_moving = True
 
     def update_hitboxes(self):
-        self.mask = pygame.mask.from_surface(self.image)
+        self.mask = pg.mask.from_surface(self.image)
         self.left_indent = min(self.mask.outline(), key=lambda x: x[0])[0]
         self.right_indent = self.rect.width - max(self.mask.outline(), key=lambda x: x[0])[0] - 1
         self.top_indent = min(self.mask.outline(), key=lambda x: x[1])[1]
 
     def wall_collision(self):
         # получаем пересекаемые объекты и перебираем каждый отдельно
-        hits = pygame.sprite.spritecollide(self, self.platforms_group, False)
+        hits = pg.sprite.spritecollide(self, self.platforms_group, False)
         for hit in hits:
             # Если маски пересекаются
-            if pygame.sprite.collide_mask(self, hit):
+            if pg.sprite.collide_mask(self, hit):
                 # Считаем расстояние игрока относительно объекта, с которым он пересекается
                 # и смещаем его на наименьшее (top_side для избежания багов)
                 left_side = abs(hit.rect.x + hit.rect.width - self.rect.x)
@@ -81,10 +81,10 @@ class Creature(pygame.sprite.Sprite):
 
     def die_block_collision(self):
         # получаем пересекаемые объекты и перебираем каждый отдельно
-        hits = pygame.sprite.spritecollide(self, self.deadly_layer, False)
+        hits = pg.sprite.spritecollide(self, self.deadly_layer, False)
         for hit in hits:
             # Если маски пересекаются
-            if pygame.sprite.collide_mask(self, hit):
+            if pg.sprite.collide_mask(self, hit):
                 self.get_damage(0.5)
 
     def get_damage(self, n, direction=None):
@@ -103,9 +103,13 @@ class Creature(pygame.sprite.Sprite):
             self.health.kill()
             self.set_animation(f'die_{self.direction}')
 
-    def make_die(self):
+    @ut.create_connect
+    def make_die(self, cur=None):
         if self.is_die:
             if self.current_animation.current_frame == len(self.current_animation) - 1 or not self.is_ground:
+                if self.__class__.__name__ == 'Enemy':
+                    cur.execute('''UPDATE saves SET killed_monsters = 
+                    (SELECT killed_monsters FROM saves WHERE id = ?) + 1 WHERE id = ?''', (sc.save_id, sc.save_id))
                 self.kill()
                 # self.__init__(self.groups, self.pos, self.platforms_group, self.deadly_layer, self.hp, self.hp_factor)
 
@@ -125,9 +129,9 @@ class Creature(pygame.sprite.Sprite):
         self.rect.y += self.fall_speed * 60 / ut.fps * 0.58  # * FACTOR_Y
 
         # обновляем координаты по Y координате (препятствия над и под)
-        hits = pygame.sprite.spritecollide(self, self.platforms_group, False)
+        hits = pg.sprite.spritecollide(self, self.platforms_group, False)
         for hit in hits:
-            if pygame.sprite.collide_mask(self, hit):
+            if pg.sprite.collide_mask(self, hit):
                 if self.rect.y - hit.rect.y < hit.rect.y - self.rect.y:
                     self.rect.y -= abs(self.rect.y + self.rect.height - hit.rect.y) - 2  # round(FACTOR_Y + 1) * 1
                     self.fall_speed = 0
@@ -152,6 +156,7 @@ class Player(Creature):
         self.dash_speed = 150  # Смещение при рывке
 
         self.double_jump_available = False  # Разрешаем двойной прыжок
+        self.plot_double_jump = False  # Разрешен ли двойной прыжок по сюжету
 
         self.damage_count = 0
 
@@ -209,7 +214,7 @@ class Player(Creature):
             self.attack1_event.activation()
 
     def make_attack1(self, all_creatures):
-        current_time = pygame.time.get_ticks()
+        current_time = pg.time.get_ticks()
         if self.attack1_event.start_time is not None and not self.is_die:
             self.attack1_event.is_active = True
             self.current_animation = self.animations[f'attack1_{self.direction}']
@@ -217,11 +222,11 @@ class Player(Creature):
 
             if self.current_animation.current_frame == 2 and self.damage_count < 1:
                 self.damage_count += 1
-                attack_radius = pygame.rect.Rect(0, 0, 50, 37)
+                attack_radius = pg.rect.Rect(0, 0, 50, 37)
                 attack_radius.center = self.rect.center
 
                 for sprite in all_creatures:
-                    if sprite != self:
+                    if sprite.__class__.__name__ == 'Enemy':
                         if sprite.rect.colliderect(attack_radius):
                             ut.sounds['hit_target'].play()
                             sprite.get_damage(1, self.direction)
@@ -237,9 +242,9 @@ class Player(Creature):
     def jump(self):
         self.rect.y += 1
         if self.is_ground:
-            hits_after = pygame.sprite.spritecollide(self, self.platforms_group, False)
+            hits_after = pg.sprite.spritecollide(self, self.platforms_group, False)
             for hit in hits_after:
-                if pygame.sprite.collide_mask(self, hit):
+                if pg.sprite.collide_mask(self, hit):
                     if abs(self.rect.y + self.rect.height - hit.rect.y) <= 3:
                         # if self.rect.y + self.rect.height - round(FACTOR_Y + 1) * 1 - 1 == hit.rect.y:
                         self.fall_speed = self.jump_strength
@@ -248,14 +253,14 @@ class Player(Creature):
                         self.set_animation(f"jump_{self.direction}")
                         break
         else:
-            if self.double_jump_available:
+            if self.double_jump_available and self.plot_double_jump:
                 self.fall_speed = self.jump_strength
                 self.double_jump_available = False
                 self.set_animation(f"jump_{self.direction}")
 
     def make_dash(self):
         # Проверяем возможность выполнения рывка
-        current_time = pygame.time.get_ticks()
+        current_time = pg.time.get_ticks()
         if not self.can_dash and self.dash_event.time_check():
             self.can_dash = True  # Разрешаем выполнение рывка снова
 
@@ -317,10 +322,10 @@ class Player(Creature):
 
     def wall_collision(self):
         # получаем пересекаемые объекты и перебираем каждый отдельно
-        hits = pygame.sprite.spritecollide(self, self.platforms_group, False)
+        hits = pg.sprite.spritecollide(self, self.platforms_group, False)
         for hit in hits:
             # Если маски пересекаются
-            if pygame.sprite.collide_mask(self, hit):
+            if pg.sprite.collide_mask(self, hit):
                 # Считаем расстояние игрока относительно объекта, с которым он пересекается
                 # и смещаем его на наименьшее (top_side для избежания багов)
                 left_side = abs(hit.rect.x + hit.rect.width - self.rect.x)
@@ -343,8 +348,8 @@ class Enemy(Creature):
     def __init__(self, group, pos, platforms_group, deadly_layer, hp=10, hp_factor=0.1):
         super().__init__(group, pos, platforms_group, deadly_layer, hp, hp_factor)
 
-        self.trigger_radius = pygame.rect.Rect(0, 0, 400, 400)
-        self.fight_radius = pygame.rect.Rect(0, 0, 150, 150)
+        self.trigger_radius = pg.rect.Rect(0, 0, 400, 400)
+        self.fight_radius = pg.rect.Rect(0, 0, 150, 150)
         self.vector = 0
         self.move_factor = 3
 
@@ -403,7 +408,7 @@ class Enemy(Creature):
                 self.attack_event.activation()
 
     def make_attack(self, all_creatures):
-        current_time = pygame.time.get_ticks()
+        current_time = pg.time.get_ticks()
         if self.attack_event.start_time is not None and not self.is_die:
             self.attack_event.is_active = True
             self.current_animation = self.animations[f'attack_{self.direction}']
@@ -411,10 +416,10 @@ class Enemy(Creature):
 
             if self.current_animation.current_frame == 6 and self.damage_count == 0:
                 self.damage_count += 1
-                attack_radius = pygame.rect.Rect(0, 0, 50, 37)
+                attack_radius = pg.rect.Rect(0, 0, 50, 37)
                 attack_radius.center = self.rect.center
                 for sprite in all_creatures:
-                    if sprite != self:
+                    if sprite.__class__.__name__ != 'Yumiko' and sprite != self:
                         if sprite.rect.colliderect(attack_radius):
                             sprite.get_damage(2, self.direction)
                             ut.sounds['hit_target'].play()
@@ -436,11 +441,11 @@ class Enemy(Creature):
 
     def move(self, direction):
         if not self.is_die:
-            hits = pygame.sprite.spritecollide(self, self.deadly_layer, False)
+            hits = pg.sprite.spritecollide(self, self.deadly_layer, False)
             if hits:
                 self.rect.x += {'right': -1, 'left': 1}[direction]
                 for hit in hits:
-                    if pygame.sprite.collide_mask(self, hit):
+                    if pg.sprite.collide_mask(self, hit):
                         left_side = abs(hit.rect.x + hit.rect.width - self.rect.x)
                         right_side = abs(self.rect.x + self.rect.width - hit.rect.x)
                         if left_side < right_side:
@@ -482,3 +487,69 @@ class Enemy(Creature):
 
         # Обновляем маску и хит-боксы
         self.update_hitboxes()
+
+
+class Yumiko(Creature):
+    def __init__(self, group, pos, platforms_group, deadly_layer, hp=0, hp_factor=0.2):
+        super().__init__(group, pos, platforms_group, deadly_layer, hp, hp_factor)
+
+        # Группы анимаций принадлежащих игроку
+        self.animations = {"idle_left": Animation("idle", 'yumiko', frame_rate=100),
+                           "idle_right": Animation("idle", 'yumiko', frame_rate=100,
+                                                   flip_horizontal=True)}
+        self.current_animation = self.animations["idle_right"]
+
+        # Создаём спрайт игрока
+        self.image = self.current_animation.get_frame()
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = self.pos
+        self.rect.x -= 10
+
+        # Создаем отступы от маски, именно они образуют хит-бокс
+        self.update_hitboxes()
+
+    def die(self):
+        pass
+
+    def update(self, *args):
+        super().update()
+        self.passive_animation()
+
+        self.direction = 'right'
+
+        # Обновляем текущую анимацию
+        self.current_animation.update()
+        self.image = self.current_animation.get_frame()
+
+
+class Mother(Creature):
+    def __init__(self, group, pos, platforms_group, deadly_layer, hp=0, hp_factor=0.2):
+        super().__init__(group, pos, platforms_group, deadly_layer, hp, hp_factor)
+
+        # Группы анимаций принадлежащих игроку
+        self.animations = {"idle_right": Animation("idle", 'mother', frame_rate=200),
+                           "idle_left": Animation("idle", 'mother', frame_rate=200,
+                                                  flip_horizontal=True)}
+        self.current_animation = self.animations["idle_right"]
+
+        # Создаём спрайт игрока
+        self.image = self.current_animation.get_frame()
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = self.pos
+        self.rect.x -= 10
+
+        # Создаем отступы от маски, именно они образуют хит-бокс
+        self.update_hitboxes()
+
+    def die(self):
+        pass
+
+    def update(self, *args):
+        super().update()
+        self.passive_animation()
+
+        self.direction = 'right'
+
+        # Обновляем текущую анимацию
+        self.current_animation.update()
+        self.image = self.current_animation.get_frame()

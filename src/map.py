@@ -78,7 +78,6 @@ class Map:
             return result
         return None
 
-
     def get_groups(self):
         return self.all_sprites, self.platforms_group, self.die_block_group, self.background_color_group
 

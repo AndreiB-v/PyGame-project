@@ -104,9 +104,10 @@ def get_images(directory):
 
 
 # Функция для получения всех кадров анимации
-def load_animation(folder_path, enemy):
+def load_animation(folder_path, creature, scale=(None, None)):
+    # scale=(100 * FACTOR_X, 87 * FACTOR_Y)
     # Путь к папке, где лежат кадры
-    base_folder = os.path.join("../data/images", enemy, folder_path)
+    base_folder = os.path.join("../data/images", creature, folder_path)
 
     if not os.path.isdir(base_folder):
         print(f"Папка {base_folder} не найдена")
@@ -119,7 +120,8 @@ def load_animation(folder_path, enemy):
     for file_name in files:
         full_path = os.path.join(base_folder, file_name)
         image = load_image(full_path)
-        image = pg.transform.scale(image, (100 * 0.58, 87 * 0.58))  # (100 * FACTOR_X, 87 * FACTOR_Y)
+        if scale:
+            image = pg.transform.scale(image, scale)
         frames.append(image)
 
     return frames
@@ -170,12 +172,38 @@ def create_connect(func):
     return decorated_func
 
 
-def get_text(text, color=(0, 0, 0), font=None, font_size=50, rect=(1000, 1000)):
-    init_font = pg.font.Font(font, int(font_size))
-    while init_font.size(text)[0] > rect[0] or init_font.size(text)[1] > rect[1]:
-        font_size -= 1
+def get_text(text, color=(0, 0, 0), font=None, font_size=50, rect=(1000, 1000), indent=0):
+    if text.__class__.__name__ == font.__class__.__name__ == 'list':
+        surfaces = []
+        for n, line in enumerate(text):
+            surfaces.append(get_text(str(line), color=color, font=font[n], font_size=font_size))
+        w = sum([surface.get_width() + indent for surface in surfaces]) - indent
+        h = surfaces[0].get_height()
+        text_surface = pg.Surface((w, h), pg.SRCALPHA)
+        current_x = 0
+        for surface in surfaces:
+            text_surface.blit(surface, (current_x, 0))
+            current_x += surface.get_width() + indent
+    else:
         init_font = pg.font.Font(font, int(font_size))
-    text_surface = init_font.render(text, 1, color)
+        while init_font.size(text)[0] > rect[0] or init_font.size(text)[1] > rect[1]:
+            font_size -= 1
+            init_font = pg.font.Font(font, int(font_size))
+        if font_size < 20:
+            font_size = 20
+
+            init_font = pg.font.Font(font, int(font_size))
+            line1 = get_text(' '.join(text.split()[:len(text.split()) // 2]),
+                             color=color, font=font, font_size=font_size)
+            line2 = get_text(' '.join(text.split()[len(text.split()) // 2:]),
+                             color=color, font=font, font_size=font_size)
+
+            text_surface = pg.Surface((rect[0], init_font.size(text)[1] * 2 + 10), pg.SRCALPHA)
+
+            text_surface.blit(line1, ((rect[0] - line1.get_width()) // 2, 0))
+            text_surface.blit(line2, ((rect[0] - line2.get_width()) // 2, line2.get_height()))
+        else:
+            text_surface = init_font.render(text, 1, color)
     return text_surface
 
 

@@ -1,10 +1,14 @@
-import utils as ut
+import src.utils as ut
 import pygame as pg
 
 
 class Animation:
-    def __init__(self, folder_path, enemy, frame_rate, flip_horizontal=False):
-        self.frames = ut.load_animation(folder_path, enemy)
+    def __init__(self, folder_path, creature, frame_rate, flip_horizontal=False):
+        scale = {'character': (100 * 0.58, 87 * 0.58),
+                 'skeleton': (100 * 0.58, 87 * 0.58),
+                 'yumiko': (39, 53),
+                 'mother': (12.258064516 * 2.2, 20 * 2.2)}[creature]
+        self.frames = ut.load_animation(folder_path, creature, scale)
         self.frame_rate = frame_rate
         self.current_frame = 0
         self.last_update = pg.time.get_ticks()

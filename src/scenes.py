@@ -1,196 +1,11 @@
 import pygame as pg
-
-import objects as obj
-import utils as ut
-from map import Map
-from camera import Camera
-from src.creatures import Player, Enemy
+import src.objects as obj
+import src.utils as ut
+import src.interaction_bd as bd
+from src.camera import Camera
 
 save_id = None
 last_scene = None
-
-
-def create_save(cur, dialogs, world, save_id=save_id):
-    # ДО: сделать хп для игрока (player) и диалоги
-
-    map_class = Map(ut.screen, {'dream': 'location_one/loco1',
-                                'city': 'location_two/loco2'}[world])
-
-    # Добавляем игрока по координатам из карты
-    cur.execute('INSERT INTO players(health, x, y, direction) SELECT MAX(Id), ?, ?, ? FROM healths',
-                (int(map_class.get_player_start_position()[0]),
-                 int(map_class.get_player_start_position()[1]),
-                 'right'))
-
-    # Добавляем игрока в локацию
-    cur.execute('INSERT INTO locations(player) SELECT MAX(Id) FROM players')  # id последнего добавленного игрока
-
-    location_id = cur.execute('SELECT MAX(Id) FROM locations').fetchone()[0]
-
-    for dialog in dialogs:
-        # Добавляем диалоги с привязкой к локации
-        cur.execute('''INSERT INTO dialogs(question, x, y, radius, location) VALUES(?, ?, ?, ?, ?)''',
-                    (dialog['question'], dialog['x'], dialog['y'], dialog['radius'], location_id))
-
-        # Добавляем ответы с привязкой к диалогу
-        for answer in dialog['answers']:
-            cur.execute('''INSERT INTO answers(dialog, answer)
-                        SELECT MAX(Id), ? FROM dialogs''', (answer,))
-
-    # Добавляем локацию в сохранение
-    # print(world)
-    cur.execute(f'''UPDATE saves SET {world} = ? WHERE id = ?''', (location_id, save_id))
-
-    return location_id
-
-
-def create_city_save(save_id, cur):
-    cur.execute('INSERT INTO healths(current_health, max_health, size_factor, indent) VALUES(?, ?, ?, ?)',
-                (10, 10, 0.2, 15))  # Здоровье игрока в сохранении
-
-    # Сюда добавлять диалоги С НАЧАЛА СЮЖЕТА
-    dialogs = [{'question': 'О, привет, сынок',
-                'x': 3128 - 300,
-                'y': 1512,
-                'radius': 100,  # радиус активации
-                'answers': ['Куда ты так поздно?', 'И куда ты?']}, ]
-
-    create_save(cur, dialogs, 'city', save_id=save_id)
-
-
-@ut.create_connect
-def create_dream_save(player, cur=None):
-    dream_map = Map(ut.screen, "location_one/loco1")
-
-    cur.execute('INSERT INTO healths(current_health, max_health, size_factor, indent) VALUES(?, ?, ?, ?)',
-                (player.health.current_health, player.health.max,
-                 player.health.factor, player.health.indent))  # Здоровье игрока в сохранении
-
-    # Сюда добавлять диалоги С НАЧАЛА СЮЖЕТА
-    dialogs = [{'question': 'Это диалог',
-                'x': int(dream_map.get_umiko_position()[0]),
-                'y': int(dream_map.get_umiko_position()[1]),
-                'radius': 100,  # радиус активации
-                'answers': ['да ну', 'ладно...']}, ]
-
-    location_id = create_save(cur, dialogs, 'dream', save_id=save_id)
-
-    skeletons = []
-    for x, y in dream_map.get_all_monsters_pos():
-        skeletons.append({'x': x, 'y': y})
-
-    for skeleton in skeletons:
-        cur.execute('INSERT INTO healths(current_health, max_health, size_factor, indent) VALUES(?, ?, ?, ?)',
-                    (10, 10, 0.1, 15))  # Здоровье скелета в сохранении
-
-        # Добавляем скелета с привязкой к хп
-        cur.execute('''INSERT INTO skeletons(health, x, y, direction, location)
-                    SELECT MAX(Id), ?, ?, ?, ? FROM healths''',
-                    (skeleton['x'], skeleton['y'], 'right', location_id))
-
-
-def get_save(location_id, groups, cur):
-    # Заполняем диалоги
-    dialogs = []
-    for dialog in cur.execute('''SELECT id, question, x, y, radius FROM dialogs WHERE location=?''',
-                              (location_id,)).fetchall():
-        answers = cur.execute('''SELECT answer FROM answers WHERE dialog=?''', (dialog[0],)).fetchall()
-        dialogs.append(obj.Dialog(*list(dialog[1:]) + [i[0] for i in answers]))
-
-    # Инициализируем игрока
-    x, y, direction, hp = cur.execute('''SELECT x, y, direction, (SELECT current_health FROM healths WHERE id=health)
-    FROM players WHERE id=(SELECT player FROM locations WHERE id=?)''', (location_id,)).fetchone()
-    player = Player(groups['creatures_group'], (x, y), groups['platforms_group'], groups['deadly_layer'], hp=hp)
-    player.direction = direction
-
-    return dialogs, player
-
-
-@ut.create_connect
-def get_dream_save(cur=None):
-    location_id = cur.execute('SELECT dream FROM saves WHERE id=?', (save_id,)).fetchone()[0]
-    dream_map = Map(ut.screen, "location_one/loco1")
-    map_groups = dream_map.get_groups()
-
-    groups = {'background_layer': map_groups[0],  # Бэкграунд
-              'platforms_group': map_groups[1],  # Группа платформ
-              'deadly_layer': map_groups[2],  # Смертельные блоки
-              'creatures_group': pg.sprite.Group()}  # Все существа
-
-    obj.Background(ut.load_image("images/background.png"), 0, 0, groups['background_layer'])
-    dialogs, player = get_save(location_id, groups, cur)
-
-    skeletons = []
-    for x, y, direction, hp in cur.execute('''SELECT x, y, direction, (SELECT current_health 
-    FROM healths WHERE id=health) FROM skeletons WHERE location=?''', (location_id,)).fetchall():
-        enemy = Enemy(groups['creatures_group'], (x, y), groups['platforms_group'], groups['deadly_layer'], hp=hp)
-        enemy.direction = direction
-        skeletons.append(enemy)
-
-    return groups, dialogs, player, skeletons, None
-
-
-@ut.create_connect
-def get_city_save(cur=None):
-    location_id = cur.execute('SELECT city FROM saves WHERE id=?', (save_id,)).fetchone()[0]
-    city_map = Map(ut.screen, "location_two/loco2")
-    map_groups = city_map.get_groups()
-
-    groups = {'back_photo': pg.sprite.Group(),
-              'background_layer': map_groups[0],  # Бэкграунд
-              'platforms_group': map_groups[1],  # Группа платформ
-              'deadly_layer': map_groups[2],  # Смертельные блоки
-              'creatures_group': pg.sprite.Group()}  # Все существа
-    rain = []
-
-    # Создаём дождь
-    for _ in range(1000):
-        rain.append(obj.Drop(city_map.width * 16, city_map.height * 16))
-    obj.Background(ut.load_image("maps/location_two/assets/background.png"), 0, 0, groups['back_photo'])
-    dialogs, player = get_save(location_id, groups, cur)
-
-    return groups, dialogs, player, None, rain
-
-
-@ut.create_connect
-def location_save(creatures_group, dialogs, location_name, cur=None):
-    location_id = cur.execute(f'SELECT {location_name} FROM saves WHERE id=?', (save_id,)).fetchone()[0]
-
-    for sk_id, health in cur.execute('SELECT id, health FROM skeletons WHERE location=?', (location_id,)).fetchall():
-        cur.execute('DELETE FROM skeletons WHERE id=?', (sk_id,)).fetchall()
-        cur.execute('DELETE FROM healths WHERE id=?', (health,))
-
-    for creature in creatures_group:
-        if creature.__class__.__name__ == 'Player':
-            player_id = cur.execute('SELECT player FROM locations WHERE id=?', (location_id,)).fetchone()[0]
-            cur.execute('UPDATE players SET x=?, y=?, direction=? WHERE id=?',
-                        (creature.rect.x, creature.rect.y, creature.direction, player_id))
-            cur.execute('''UPDATE healths SET current_health=? 
-                        WHERE id=(SELECT health FROM players WHERE id=?)''',
-                        (creature.health.current_health, player_id))
-
-        elif creature.__class__.__name__ == 'Enemy':
-            cur.execute('INSERT INTO healths(current_health, max_health, size_factor, indent) VALUES(?, ?, ?, ?)',
-                        (creature.health.current_health, creature.health.max,
-                         creature.health.factor, creature.health.indent))  # Здоровье скелета в сохранении
-
-            # Добавляем скелета с привязкой к хп
-            cur.execute('''INSERT INTO skeletons(health, x, y, direction, location)
-                       SELECT MAX(Id), ?, ?, ?, ? FROM healths''',
-                        (creature.rect.x, creature.rect.y, creature.direction, location_id))
-
-    for bd_dialog in cur.execute('SELECT id FROM dialogs WHERE location=?', (location_id,)).fetchall():
-        cur.execute('DELETE FROM answers WHERE dialog=?', (bd_dialog[0],)).fetchall()
-        cur.execute('DELETE FROM dialogs WHERE id=?', (bd_dialog[0],))
-    for dialog in dialogs:
-        # Добавляем диалоги с привязкой к локации
-        cur.execute('''INSERT INTO dialogs(question, x, y, radius, location) VALUES(?, ?, ?, ?, ?)''',
-                    (dialog.question, dialog.x, dialog.y, dialog.radius, location_id))
-
-        # Добавляем ответы с привязкой к диалогу
-        for answer in dialog.answers:
-            cur.execute('''INSERT INTO answers(dialog, answer)
-                                SELECT MAX(Id), ? FROM dialogs''', (answer,))
 
 
 # Основной цикл игры
@@ -203,7 +18,7 @@ def game():
     ut.initialization()
 
     def save_return(value):
-        location_save(groups['creatures_group'], dialogs, return_current_location())
+        bd.location_save(save_id, groups['creatures_group'], dialogs, return_current_location())
         pg.mixer.music.stop()
         return value
 
@@ -212,26 +27,33 @@ def game():
     def change_location(location, cur=None):
         cur.execute(f'UPDATE saves SET current_location = ? WHERE id = ?', (location, save_id))
 
+    # возвращает текущую локацию (dream или city)
     @ut.create_connect
     def return_current_location(cur=None):
         return cur.execute('SELECT current_location FROM saves WHERE id = ?', (save_id,)).fetchone()[0]
 
+    # проверяет, инициализирован ли сон в сохранении и создает его, если нет
     @ut.create_connect
     def check_dream(player, cur=None):
         if not cur.execute(f'SELECT dream FROM saves WHERE id = ?', (save_id,)).fetchone()[0]:
-            create_dream_save(player)
+            bd.create_dream_save(player, save_id)
+
+    # обновляет состояние double_jump (на True)
+    @ut.create_connect
+    def update_double_jump(cur=None):
+        cur.execute('UPDATE saves SET double_jump = 1 WHERE id = ?', (save_id,))
 
     def init_save():
         nonlocal end_game
         location = return_current_location()
         if location == 'dream':
-            end_game = obj.EndGame(1940, 1956)
-            return get_dream_save()
+            end_game = obj.EndGame(1940, 1956, save_id)
+            return bd.get_dream_save(save_id)
         else:
             pg.mixer.music.load("../data/sounds/rain_sound.mp3")
             pg.mixer.music.play(-1)
             pg.mixer.music.set_volume(ut.settings['SOUNDS VOLUME'] * 0.01)
-            return get_city_save()
+            return bd.get_city_save(save_id)
 
     groups, dialogs, player, skeletons, rain = init_save()
     next_lvl = obj.NextLevel(3103, 1541)
@@ -263,7 +85,7 @@ def game():
                 elif end_game_log == 'quit':
                     return save_return('close')
         if pg.sprite.collide_mask(player, next_lvl):
-            location_save(groups['creatures_group'], dialogs, return_current_location())
+            bd.location_save(save_id, groups['creatures_group'], dialogs, return_current_location())
             pg.mixer.music.stop()
 
             check_dream(player)
@@ -376,18 +198,37 @@ def game():
             ut.screen.blit(screen3, (0, 0))
         if cur_dialog and cur_dialog.active:
             answer = ut.render_popup(cur_dialog)
-            dialogs.remove(cur_dialog)
-            cur_dialog = None
             if answer == 'quit':
                 return save_return('close')
-            if answer == "Куда ты так поздно?" or answer == "И куда ты?":
-                dialogs.append(obj.Dialog('Сам же знаешь. На работу',
+            else:
+                dialogs.remove(cur_dialog)
+                cur_dialog = None
+            if answer == "куда ты так поздно?" or answer == "и куда ты?":
+                dialogs.append(obj.Dialog('сам же знаешь. на работу',
                                           3128 - 300, 1512, 100,
-                                          'Опять переработки?', 'Как много работы'))
-            if answer == "Опять переработки?" or answer == "Как много работы":
-                dialogs.append(obj.Dialog('Ну, а что поделать? Ладно, я побежала, бязательно поешь!',
+                                          'опять переработки?', 'как много работы'))
+            if answer == "опять переработки?" or answer == "как много работы":
+                dialogs.append(obj.Dialog('ну, а что поделать? ладно, я побежала, обязательно поешь!',
                                           3128 - 300, 1512, 100,
-                                          'Хорошо, пока', 'Окей, увидимся'))
+                                          'хорошо, пока', 'окей, увидимся'))
+            if answer == "где я?":
+                dialogs.append(obj.Dialog('м? серьёзно? по твоему кислому лицу и в правду видно, '
+                                          'что ты не понимаешь, где ты..', 557, 1138, 20, '"молчание"'))
+            if answer == '"молчание"':
+                dialogs.append(obj.Dialog('ну что ж.. поздравляю, ты попал в сказочный мир снов, '
+                                          'в нём может происходить всё, что угодно, ведь на то он и сказочный!',
+                                          557, 1138, 20,
+                                          'ты знаешь, как отсюда можно выбраться?'))
+            if answer == 'ты знаешь, как отсюда можно выбраться?':
+                dialogs.append(obj.Dialog('нет, если честно, но за помощь со скелетом я могу немного тебе помочь! '
+                                          'возьми это', 557, 1138, 20, 'получить двойной прыжок'))
+            if answer == 'получить двойной прыжок':
+                player.plot_double_jump = True
+                update_double_jump()
+                dialogs.append(obj.Dialog(' здесь трудно без таких умений, поэтому рада, что дала тебе его. '
+                                          'с помощью этого навыка ты сможешь свободно передвигаться по миру '
+                                          'и я надеюсь, что ты найдёшь выход домой!',
+                                          557, 1138, 20, 'спасибо'))
         # ¯¯¯¯¯¯¯¯¯¯¯¯¯¯ ДИАЛОГИ ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯ #
 
         pg.display.flip()
@@ -448,6 +289,7 @@ def select_save(cur=None):
     save_count = len(saves)
 
     buttons = []
+    plus_button = None
 
     for save in saves:
         buttons.append(obj.Button(381, 160 + 151 * (saves.index(save)), save[0],
@@ -462,7 +304,7 @@ def select_save(cur=None):
         save_id = cur.execute('SELECT MAX(Id) FROM saves').fetchone()[0]
 
         save_count += 1
-        create_city_save(save_id, cur)
+        bd.create_city_save(save_id, cur)
 
         buttons.append(obj.Button(381, 160 + 151 * (save_count - 1), save_id,
                                   ut.load_image(f'buttons/saves/Save {save_count}.png', 'MENU'),
@@ -489,14 +331,16 @@ def select_save(cur=None):
             if event.type == pg.MOUSEBUTTONDOWN:
                 ut.button_layer.update(event.pos, 'down')
             if event.type == pg.MOUSEBUTTONUP:
-                for func in [button.update(event.pos, 'up') for button in buttons + [plus_button]]:
+                for func in [button.update(event.pos, 'up') for button in buttons]:
                     if func == start_screen:
                         return start_screen
                     elif func.__class__.__name__ == 'int':
                         global save_id
                         save_id = func
                         return game
-                    elif func:
+                if plus_button is not None:
+                    func = plus_button.update(event.pos, 'up')
+                    if func:
                         func()
             if event.type == MYEVENTTYPE:
                 ut.mid_layer.update()
