@@ -189,8 +189,8 @@ def get_text(text, color=(0, 0, 0), font=None, font_size=50, rect=(1000, 1000), 
         while init_font.size(text)[0] > rect[0] or init_font.size(text)[1] > rect[1]:
             font_size -= 1
             init_font = pg.font.Font(font, int(font_size))
-        if font_size < 20:
-            font_size = 20
+        if font_size < 16:
+            font_size = 16
 
             init_font = pg.font.Font(font, int(font_size))
             line1 = get_text(' '.join(text.split()[:len(text.split()) // 2]),

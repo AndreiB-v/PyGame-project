@@ -47,8 +47,8 @@ def create_city_save(save_id, cur):
     # Сюда добавлять диалоги С НАЧАЛА СЮЖЕТА
     dialogs = [{'question': 'о, привет, сынок',
                 'x': 3128 - 300,
-                'y': 1512,
-                'radius': 100,  # радиус активации
+                'y': 1512 + 60,
+                'radius': 20,  # радиус активации
                 'answers': ['куда ты так поздно?', 'и куда ты?']}, ]
 
     create_save(cur, dialogs, 'city', save_id)
