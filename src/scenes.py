@@ -50,7 +50,7 @@ def game():
             end_game = obj.EndGame(1940, 1956, save_id)
             return bd.get_dream_save(save_id)
         else:
-            pg.mixer.music.load("../data/sounds/rain_sound.mp3")
+            pg.mixer.music.load("data/sounds/rain_sound.mp3")
             pg.mixer.music.play(-1)
             pg.mixer.music.set_volume(ut.settings['SOUNDS VOLUME'] * 0.01)
             return bd.get_city_save(save_id)

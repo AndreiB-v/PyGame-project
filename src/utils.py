@@ -7,7 +7,7 @@ import json
 
 import pygame as pg
 
-with open('../settings.json') as file:
+with open('settings.json') as file:
     settings = json.load(file)
 
 old_settings = dict(settings)  # сохраняем текущие настройки
@@ -32,7 +32,7 @@ def sounds_init():
     sounds_names = ['die_character', 'die_skeleton', 'hit_air', 'hit_target', 'dialog_activation']
     all_sounds = {}
     for name in sounds_names:
-        sound = pg.mixer.Sound(f'../data/sounds/{name}.wav')
+        sound = pg.mixer.Sound(f'data/sounds/{name}.wav')
         sound.set_volume(volume * 0.01)
         all_sounds[name] = sound
     return all_sounds
@@ -44,7 +44,7 @@ def screen_init():
     # Создается экран, в зависимости от настроек
     if app_bar:
         surface = pg.display.set_mode(size)
-        pg.display.set_icon(pg.image.load('../data/images/icon.png'))
+        pg.display.set_icon(pg.image.load('data/images/icon.png'))
         pg.display.set_caption("Корабли ходят по небу")
     else:
         surface = pg.display.set_mode(size, pg.NOFRAME)
@@ -73,7 +73,7 @@ def initialization():
 
 # Функция для добавления изображений
 def load_image(filename, mode=None, factors=(factor_x, factor_y)):
-    fullname = os.path.join('../data', filename)
+    fullname = os.path.join('data', filename)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
@@ -107,7 +107,7 @@ def get_images(directory):
 def load_animation(folder_path, creature, scale=(None, None)):
     # scale=(100 * FACTOR_X, 87 * FACTOR_Y)
     # Путь к папке, где лежат кадры
-    base_folder = os.path.join("../data/images", creature, folder_path)
+    base_folder = os.path.join("data/images", creature, folder_path)
 
     if not os.path.isdir(base_folder):
         print(f"Папка {base_folder} не найдена")
@@ -162,7 +162,7 @@ def render_popup(popup_class):
 
 def create_connect(func):
     def decorated_func(*args, **kwargs):
-        con = sqlite3.connect("../data/database/db.sqlite")
+        con = sqlite3.connect("data/database/db.sqlite")
         cur = con.cursor()
         result = func(*args, **kwargs, cur=cur)
         con.commit()
@@ -215,7 +215,7 @@ def update_settings():
     if settings['FPS'] == 0:
         settings['FPS'] = 1
 
-    with open('../settings.json', 'w') as settings_file:
+    with open('settings.json', 'w') as settings_file:
         json.dump(settings, settings_file)
 
     fps = settings['FPS']

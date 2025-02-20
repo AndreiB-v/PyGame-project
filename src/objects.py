@@ -109,12 +109,12 @@ class Slider(pg.sprite.Sprite):
     def draw_text(self):
         if self.text['center']:
             text = ut.get_text(f'{(self.current_value + 40) * 16}:{(self.current_value + 40) * 9}',
-                               (50, 36, 11), font='../data/Berlin-Sans-FB-Demi-Font.ttf',
+                               (50, 36, 11), font='data/Berlin-Sans-FB-Demi-Font.ttf',
                                font_size=int(self.text['size'] * ut.factor_x))
             ut.screen.blit(text, (self.text['x'] * ut.factor_x - text.get_width() // 2, self.text['y'] * ut.factor_y))
         else:
             text = ut.get_text(str(self.current_value), (50, 36, 11),
-                               font='../data/Berlin-Sans-FB-Demi-Font.ttf',
+                               font='data/Berlin-Sans-FB-Demi-Font.ttf',
                                font_size=int(self.text['size'] * ut.factor_x))
             ut.screen.blit(text, (self.text['x'] * ut.factor_x, self.text['y'] * ut.factor_y))
 
@@ -182,7 +182,7 @@ class Dialog(Popup):
             button = ut.load_image('buttons/Empty.png', 'MENU')
 
             text = ut.get_text(answer[1], (208, 185, 14),
-                               font='../data/DoubleBass-Regular-trial.ttf',
+                               font='data/DoubleBass-Regular-trial.ttf',
                                font_size=int(50 * ut.factor_x),
                                rect=((button.get_rect().width - 80 * ut.factor_x),
                                      (button.get_rect().height - 80 * ut.factor_y)))
@@ -204,7 +204,7 @@ class Dialog(Popup):
 
         self.popup_layer.draw(screen)
         text = ut.get_text(self.question, (208, 185, 14),
-                           font='../data/DoubleBass-Regular-trial.ttf',
+                           font='data/DoubleBass-Regular-trial.ttf',
                            font_size=40, rect=(ut.width - 50, ut.height - ut.height * 0.72))
 
         screen.blit(text, (ut.width * 0.5 - text.get_width() // 2,
@@ -230,7 +230,7 @@ class Pause(Popup):
         self.popup_layer.draw(screen)
 
         text = ut.get_text('ИГРА ОСТАНОВЛЕНА', (205, 185, 3),
-                           font='../data/DoubleBass-Regular-trial.ttf',
+                           font='data/DoubleBass-Regular-trial.ttf',
                            font_size=int(100 * ut.factor_x),
                            rect=(ut.width - 50, ut.height - ut.height * 0.72))
         screen.blit(text, (abs(ut.width - text.get_width()) // 2,
@@ -262,12 +262,12 @@ class EndGame(Popup, pg.sprite.Sprite):
         self.popup_layer.draw(screen)
 
         text1 = ut.get_text(['количество убитых монстров: ', get_killed_monsters(self.save_id)], (205, 185, 3),
-                            font=['../data/DoubleBass-Regular-trial.ttf', '../data/Berlin-Sans-FB-Demi-Font.ttf'],
+                            font=['data/DoubleBass-Regular-trial.ttf', 'data/Berlin-Sans-FB-Demi-Font.ttf'],
                             font_size=20,
                             rect=(ut.width - 50, ut.height - ut.height * 0.72))
 
         text2 = ut.get_text('ВЫ ВЫБРАЛИСЬ ИЗ СНА, ТЕМ САМЫМ ПРОЙДЯ ИГРУ!', (205, 185, 3),
-                            font='../data/DoubleBass-Regular-trial.ttf',
+                            font='data/DoubleBass-Regular-trial.ttf',
                             font_size=100 * ut.factor_x,
                             rect=(ut.width - 50, ut.height - ut.height * 0.72))
 
