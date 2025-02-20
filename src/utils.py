@@ -73,7 +73,10 @@ def initialization():
 
 # Функция для добавления изображений
 def load_image(filename, mode=None, factors=(factor_x, factor_y)):
-    fullname = os.path.join('data', filename)
+    if 'data' in filename:
+        fullname = filename
+    else:
+        fullname = os.path.join('data', filename)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
